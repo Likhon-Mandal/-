@@ -1,0 +1,9 @@
+CREATE TABLE IF NOT EXISTS help_requests (
+    id SERIAL PRIMARY KEY,
+    title VARCHAR(255) NOT NULL,
+    tag VARCHAR(50) NOT NULL,
+    type VARCHAR(20) DEFAULT 'alert',
+    content TEXT,
+    posted_by VARCHAR(100) DEFAULT 'Admin',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);

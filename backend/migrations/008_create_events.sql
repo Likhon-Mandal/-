@@ -1,0 +1,11 @@
+DROP TABLE IF EXISTS events;
+
+CREATE TABLE events (
+    id SERIAL PRIMARY KEY,
+    title VARCHAR(255) NOT NULL,
+    date VARCHAR(100) NOT NULL,
+    time VARCHAR(100),
+    location VARCHAR(255),
+    description TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);

@@ -20,24 +20,58 @@ const FindRelation = () => {
         }
 
         const levelDiff = personA.level - personB.level;
-
+        const gender = personB.gender;
         let relationString = "";
         let distance = Math.abs(levelDiff);
 
         if (levelDiff === 0) {
-            relationString = "একই প্রজন্ম (ভাই-বোন / খুড়তুতো-জেঠতুতো-মাসতুতো)";
+            if (gender === 'Male') relationString = "ভাই / সমবয়সী আত্মীয়";
+            else if (gender === 'Female') relationString = "বোন / সমবয়সী আত্মীয়া";
+            else relationString = "ভাই / বোন";
         } else if (levelDiff === -1) {
-            relationString = "১ প্রজন্ম উপরের (বাবা-মা / কাকা-জেঠা-পিসি-মামা-মাসি)";
+            const isDirectChild = personB.father_id === personA.id || personB.mother_id === personA.id;
+            if (isDirectChild) {
+                if (gender === 'Male') relationString = "ছেলে";
+                else if (gender === 'Female') relationString = "মেয়ে";
+                else relationString = "সন্তান (ছেলে / মেয়ে)";
+            } else {
+                if (gender === 'Male') relationString = "ভাইপো";
+                else if (gender === 'Female') relationString = "ভাইঝি";
+                else relationString = "ভাইপো / ভাইঝি";
+            }
         } else if (levelDiff === 1) {
-            relationString = "১ প্রজন্ম নিচের (ছেলে-মেয়ে / ভাইপো-ভাইঝি / ভাগ্নে-ভাগ্নি)";
+            const isDirectParent = personA.father_id === personB.id || personA.mother_id === personB.id;
+            if (isDirectParent) {
+                if (gender === 'Male') relationString = "বাবা";
+                else if (gender === 'Female') relationString = "মা";
+                else relationString = "বাবা / মা";
+            } else {
+                if (gender === 'Male') relationString = "জ্যাঠা / কাকা";
+                else if (gender === 'Female') relationString = "জেঠি / কাকি / পিসি";
+                else relationString = "জ্যাঠা / কাকা / জেঠি / পিসি";
+            }
         } else if (levelDiff === -2) {
-            relationString = "২ প্রজন্ম উপরের (ঠাকুরদা-ঠাকুমা / দাদু-দিদা)";
+            if (gender === 'Male') relationString = "নাতি";
+            else if (gender === 'Female') relationString = "নাতনি";
+            else relationString = "নাতি / নাতনি";
         } else if (levelDiff === 2) {
-            relationString = "২ প্রজন্ম নিচের (নাতি-নাতনি)";
-        } else if (levelDiff < -2) {
-            relationString = `${distance} প্রজন্ম উপরের (পূর্বপুরুষ স্তর)`;
-        } else if (levelDiff > 2) {
-            relationString = `${distance} প্রজন্ম নিচের (উত্তরাধিকারী স্তর)`;
+            if (gender === 'Male') relationString = "ঠাকুরদা";
+            else if (gender === 'Female') relationString = "ঠাকুমা";
+            else relationString = "ঠাকুরদা / ঠাকুমা";
+        } else if (levelDiff === -3) {
+            if (gender === 'Male') relationString = "প্রপৌত্র (নাতির ছেলে)";
+            else if (gender === 'Female') relationString = "প্রপৌত্রী (নাতির মেয়ে)";
+            else relationString = "প্রপৌত্র / প্রপৌত্রী (নাতির ছেলে / মেয়ে)";
+        } else if (levelDiff === 3) {
+            if (gender === 'Male') relationString = "প্রপিতামহ (দাদুর বাবা)";
+            else if (gender === 'Female') relationString = "প্রমাতামহ (দাদুর মা)";
+            else relationString = "প্রপিতামহ / প্রমাতামহ";
+        } else if (levelDiff < -3) {
+            relationString = `${distance} প্রজন্ম নিচের (উত্তরাধিকারী)`;
+        } else if (levelDiff > 3) {
+            if (gender === 'Male') relationString = `${distance} প্রজন্ম উপরের (পূর্বপুরুষ)`;
+            else if (gender === 'Female') relationString = `${distance} প্রজন্ম উপরের (পূর্বনারী)`;
+            else relationString = `${distance} প্রজন্ম উপরের (পূর্বপুরুষ)`;
         }
 
         return {
@@ -85,12 +119,21 @@ const FindRelation = () => {
                 {/* Connector Center Graphic */}
                 <div className="md:col-span-1 flex items-center justify-center h-full py-8 md:py-0 relative z-10">
                     <div className="hidden md:block absolute left-0 right-0 top-1/2 h-1 bg-stone-200 -z-10 rounded-full w-full"></div>
-                    <div className={`
-                        w-16 h-16 rounded-full flex items-center justify-center border-4 shadow-md transition-all duration-500
-                        ${(personA && personB) ? 'bg-orange-500 border-white text-white scale-110 shadow-orange-500/20' : 'bg-white border-stone-100 text-stone-300 scale-100'}
-                    `}>
+                    <button
+                        onClick={() => {
+                            const temp = personA;
+                            setPersonA(personB);
+                            setPersonB(temp);
+                        }}
+                        disabled={!personA && !personB}
+                        className={`
+                            w-16 h-16 rounded-full flex items-center justify-center border-4 shadow-md transition-all duration-500 cursor-pointer
+                            ${(personA || personB) ? 'hover:scale-105 active:scale-95' : ''}
+                            ${(personA && personB) ? 'bg-orange-500 hover:bg-orange-600 border-white text-white scale-110 shadow-orange-500/20' : 'bg-white border-stone-100 text-stone-300 scale-100'}
+                        `}
+                    >
                         <ArrowRightLeft size={24} className={(personA && personB) ? 'animate-pulse' : ''} />
-                    </div>
+                    </button>
                 </div>
 
                 {/* Person B Selector */}
@@ -151,7 +194,7 @@ const FindRelation = () => {
                             {/* Textual Conclusion */}
                             <div className="inline-block bg-orange-50 border border-orange-200 px-8 py-4 rounded-full shadow-inner relative max-w-2xl w-full mx-auto">
                                 <p className="text-xl md:text-2xl font-serif font-medium text-stone-800 leading-snug">
-                                    <span className="font-bold text-orange-700">{personB.full_name}</span> -এর <span className="font-bold text-red-700 border-b-2 border-red-200">{relationResult.text}</span> হলেন <span className="font-bold text-orange-700">{personA.full_name}</span>।
+                                    <span className="font-bold text-orange-700">{personB.full_name}</span> হলেন <span className="font-bold text-orange-700">{personA.full_name}</span> -এর <span className="font-bold text-red-700 border-b-2 border-red-200">{relationResult.text}</span>।
                                 </p>
                             </div>
                         </div>

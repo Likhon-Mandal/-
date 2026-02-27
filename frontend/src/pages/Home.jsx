@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Bell, HelpCircle, Star, ArrowRight, User, Calendar, MapPin, Activity, ChevronRight, AlertCircle } from 'lucide-react';
+import { Bell, HelpCircle, Star, ArrowRight, User, Calendar, MapPin, Activity, ChevronRight, AlertCircle, Edit2, Trash2 } from 'lucide-react';
 import ImageSlider from '../components/ImageSlider';
+import HelpRequestModal from '../components/HelpRequestModal';
 
 /* ANIMATION STYLES */
 const AnimationStyles = () => (
@@ -42,24 +43,26 @@ const AnimationStyles = () => (
 );
 
 /* List Item Component */
-const ListItem = ({ icon: Icon, title, date, tag, type }) => (
-    <div className="glass-item p-4 rounded-xl flex items-start gap-4 cursor-pointer group mb-3">
-        <div className={`p-3 rounded-xl shrink-0 ${type === 'alert' ? 'bg-red-50 text-red-600' : 'bg-orange-50 text-orange-600'}`}>
-            <Icon size={20} />
-        </div>
-        <div className="min-w-0 flex-1">
-            <div className="flex items-center justify-between mb-1">
-                <span className={`text-[10px] uppercase font-bold tracking-wider ${type === 'alert' ? 'text-red-500' : 'text-orange-500'}`}>{tag}</span>
-                <span className="text-[10px] text-stone-400 font-medium">{date}</span>
+const ListItem = ({ icon: Icon, title, date, tag, type, to }) => (
+    <Link to={to || "/board"} className="block group mb-3">
+        <div className="glass-item p-4 rounded-xl flex items-start gap-4 cursor-pointer">
+            <div className={`p-3 rounded-xl shrink-0 ${type === 'alert' ? 'bg-red-50 text-red-600' : 'bg-orange-50 text-orange-600'}`}>
+                <Icon size={20} />
             </div>
-            <h4 className="text-base font-bold text-stone-800 leading-snug group-hover:text-primary transition-colors line-clamp-2">
-                {title}
-            </h4>
+            <div className="min-w-0 flex-1">
+                <div className="flex items-center justify-between mb-1">
+                    <span className={`text-[10px] uppercase font-bold tracking-wider ${type === 'alert' ? 'text-red-500' : 'text-orange-500'}`}>{tag}</span>
+                    <span className="text-[10px] text-stone-400 font-medium">{date}</span>
+                </div>
+                <h4 className="text-base font-bold text-stone-800 leading-snug group-hover:text-orange-700 transition-colors line-clamp-2">
+                    {title}
+                </h4>
+            </div>
+            <div className="self-center opacity-0 group-hover:opacity-100 transition-opacity -translate-x-2 group-hover:translate-x-0">
+                <ChevronRight size={16} className="text-stone-400" />
+            </div>
         </div>
-        <div className="self-center opacity-0 group-hover:opacity-100 transition-opacity -translate-x-2 group-hover:translate-x-0">
-            <ChevronRight size={16} className="text-stone-400" />
-        </div>
-    </div>
+    </Link>
 );
 
 /* Pillar Card */
@@ -82,17 +85,101 @@ const PillarCard = ({ member }) => (
 );
 
 const Home = () => {
-    // Mock Data
-    const announcements = [
-        { id: 1, title: '94th Annual Gathering: A Legacy Continues', date: '10 Feb', tag: 'Event' },
-        { id: 2, title: 'Scholarship Applications Open for 2026', date: '15 Jan', tag: 'Education' },
-        { id: 3, title: 'New Digital Archive Features Released', date: 'Now', tag: 'System' }
-    ];
+    const [announcements, setAnnouncements] = useState([]);
+    const [loadingAnnouncements, setLoadingAnnouncements] = useState(true);
 
-    const helpRequests = [
-        { id: 1, title: 'Seeking 1971 Liberation War Records', date: '2h ago', tag: 'Research', type: 'alert' },
-        { id: 2, title: 'Urgent: B+ Blood Donor in Dhaka', date: '5h ago', tag: 'Medical', type: 'alert' }
-    ];
+    const [helpRequests, setHelpRequests] = useState([]);
+    const [loadingHelp, setLoadingHelp] = useState(true);
+    const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
+    const [editingHelp, setEditingHelp] = useState(null);
+
+    const fetchHelpData = async () => {
+        try {
+            setLoadingHelp(true);
+            const res = await fetch('http://localhost:5001/api/help');
+            if (res.ok) {
+                const data = await res.json();
+
+                const formattedHelp = data.map(h => {
+                    const diffTime = Math.abs(new Date() - new Date(h.created_at));
+                    const diffHours = Math.floor(diffTime / (1000 * 60 * 60));
+                    const timeAgo = diffHours < 24 ? `${diffHours}h ago` : `${Math.floor(diffHours / 24)}d ago`;
+
+                    return {
+                        id: h.id,
+                        title: h.title,
+                        date: timeAgo,
+                        tag: h.tag,
+                        type: h.type,
+                        posted_by: h.posted_by,
+                        content: h.content
+                    };
+                });
+
+                setHelpRequests(formattedHelp.slice(0, 3)); // Show top 3
+            }
+        } catch (error) {
+            console.error(error);
+        } finally {
+            setLoadingHelp(false);
+        }
+    };
+
+    useEffect(() => {
+        const fetchDashboardData = async () => {
+            try {
+                setLoadingAnnouncements(true);
+                const [noticesRes, eventsRes] = await Promise.all([
+                    fetch('http://localhost:5001/api/notices'),
+                    fetch('http://localhost:5001/api/events')
+                ]);
+
+                let noticesData = [];
+                let eventsData = [];
+
+                if (noticesRes.ok) noticesData = await noticesRes.json();
+                if (eventsRes.ok) eventsData = await eventsRes.json();
+
+                const formattedNotices = noticesData.map(n => ({
+                    id: `n-${n.id}`,
+                    title: n.title,
+                    date: new Date(n.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }),
+                    tag: 'Notice',
+                    timestamp: new Date(n.created_at || Date.now()).getTime()
+                }));
+
+                const formattedEvents = eventsData.map(e => ({
+                    id: `e-${e.id}`,
+                    title: e.title,
+                    date: new Date(e.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }),
+                    tag: 'Event',
+                    timestamp: new Date(e.created_at || Date.now()).getTime()
+                }));
+
+                const combined = [...formattedEvents, ...formattedNotices]
+                    .sort((a, b) => b.timestamp - a.timestamp)
+                    .slice(0, 4);
+
+                setAnnouncements(combined);
+            } catch (error) {
+                console.error("Error fetching dashboard data:", error);
+            } finally {
+                setLoadingAnnouncements(false);
+            }
+        };
+        fetchDashboardData();
+        fetchHelpData();
+    }, []);
+
+    const handleDeleteHelp = async (id) => {
+        if (!window.confirm("Are you sure you want to delete this specific request?")) return;
+        try {
+            const res = await fetch(`http://localhost:5001/api/help/${id}`, { method: 'DELETE' });
+            if (res.ok) fetchHelpData();
+        } catch (error) {
+            console.error(error);
+        }
+    };
 
     const featuredMembers = [
         { id: 1, name: 'Dr. Anupam Barai', role: 'Cardiologist', achievement: 'National Healthcare Award 2025 Recipient' },
@@ -133,10 +220,10 @@ const Home = () => {
 
                         <div className="flex flex-wrap items-center justify-center gap-5 pt-2">
                             <Link to="/explorer" className="px-10 py-4 bg-orange-700 hover:bg-orange-800 text-white rounded-full font-bold shadow-lg shadow-orange-900/10 hover:-translate-y-1 transition-all duration-300 flex items-center gap-2 text-sm uppercase tracking-wider">
-                                পরিবার খুজুন  <ArrowRight size={18} />
+                                জ্ঞাতিবর্গদের খুজুন  <ArrowRight size={18} />
                             </Link>
                             <Link to="/history" className="px-10 py-4 bg-white hover:bg-orange-50 text-stone-800 border-2 border-orange-100/50 rounded-full font-bold transition-all duration-300 text-sm uppercase tracking-wider hover:border-orange-200 shadow-sm hover:shadow-md">
-                                বংশের ইতিহাস
+                                ইতিহাস জানুন
                             </Link>
                         </div>
                     </div>
@@ -147,7 +234,7 @@ const Home = () => {
             <div className="max-w-7xl mx-auto px-6 md:px-8">
 
                 {/* NOTICES & HELP DESK SECTION - Grid Layout Below Hero */}
-                <div className="grid lg:grid-cols-2 gap-8 mb-24 mt-12 relative z-20">
+                <div className="grid lg:grid-cols-2 gap-8 mb-24 mt-12 relative">
 
                     {/* Notices Panel */}
                     <div className="glass-panel rounded-[2rem] p-8 animate-fade-up delay-100">
@@ -156,12 +243,18 @@ const Home = () => {
                                 <div className="p-2 bg-orange-100 rounded-lg text-orange-600"><Bell size={24} /></div>
                                 Community Notices
                             </h2>
-                            <Link to="/notices" className="text-xs font-bold uppercase tracking-widest text-stone-400 hover:text-orange-600 transition-colors bg-white px-3 py-1 rounded-full shadow-sm border border-stone-100">View All</Link>
+                            <Link to="/board" className="text-xs font-bold uppercase tracking-widest text-stone-400 hover:text-orange-600 transition-colors bg-white px-3 py-1 rounded-full shadow-sm border border-stone-100">View All</Link>
                         </div>
                         <div className="space-y-2">
-                            {announcements.map(item => (
-                                <ListItem key={item.id} icon={Calendar} {...item} />
-                            ))}
+                            {loadingAnnouncements ? (
+                                <div className="text-center p-4 text-sm text-stone-400 font-medium">Loading latest updates...</div>
+                            ) : announcements.length > 0 ? (
+                                announcements.map(item => (
+                                    <ListItem key={item.id} icon={Calendar} to="/board" {...item} />
+                                ))
+                            ) : (
+                                <div className="text-center p-4 text-sm text-stone-400 font-medium">No recent announcements.</div>
+                            )}
                         </div>
                     </div>
 
@@ -175,13 +268,33 @@ const Home = () => {
                             <Link to="/help" className="text-xs font-bold uppercase tracking-widest text-stone-400 hover:text-orange-600 transition-colors bg-white px-3 py-1 rounded-full shadow-sm border border-stone-100">View All</Link>
                         </div>
                         <div className="space-y-2">
-                            {helpRequests.map(item => (
-                                <ListItem key={item.id} icon={AlertCircle} type="alert" {...item} />
-                            ))}
-                            <button className="w-full mt-4 py-3 rounded-xl border-2 border-dashed border-stone-200 text-stone-400 font-bold hover:bg-orange-50 hover:border-orange-200 hover:text-orange-600 transition-all flex items-center justify-center gap-2 group">
-                                <span className="w-8 h-8 rounded-full bg-stone-100 flex items-center justify-center group-hover:bg-orange-100 text-stone-400 group-hover:text-orange-500 transition-colors">+</span>
-                                Create New Request
-                            </button>
+                            {loadingHelp ? (
+                                <div className="text-center p-4 text-sm text-stone-400 font-medium">Loading requests...</div>
+                            ) : helpRequests.length > 0 ? (
+                                helpRequests.map(item => (
+                                    <div key={item.id} className="relative group/helpitem">
+                                        <ListItem icon={AlertCircle} type={item.type} to="/help" {...item} />
+                                        <div className="absolute top-4 right-10 z-10 flex gap-1 opacity-0 group-hover/helpitem:opacity-100 transition-opacity">
+                                            <button
+                                                onClick={(e) => { e.preventDefault(); e.stopPropagation(); setEditingHelp(item); setIsHelpModalOpen(true); }}
+                                                className="p-1.5 text-stone-300 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"
+                                                title="Edit Request"
+                                            >
+                                                <Edit2 size={14} />
+                                            </button>
+                                            <button
+                                                onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleDeleteHelp(item.id); }}
+                                                className="p-1.5 text-stone-300 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                                title="Delete Request"
+                                            >
+                                                <Trash2 size={14} />
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))
+                            ) : (
+                                <div className="text-center p-4 text-sm text-stone-400 font-medium">No active help requests.</div>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -210,6 +323,13 @@ const Home = () => {
                 </div>
 
             </div>
+            <HelpRequestModal
+                isOpen={isHelpModalOpen}
+                onClose={() => setIsHelpModalOpen(false)}
+                onSuccess={fetchHelpData}
+                initialData={editingHelp}
+            />
+
         </div>
     );
 };

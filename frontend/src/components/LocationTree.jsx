@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { ChevronRight, Edit2, Check, X } from 'lucide-react';
+import { ChevronRight, Edit2, Check, X, Trash2 } from 'lucide-react';
 
 /* ANIMATION STYLES */
 const AnimationStyles = () => (
@@ -39,7 +39,7 @@ const levelTitles = {
     'home': 'Home'
 };
 
-const LocationNode = ({ node, isActive, isDimmed, onClick, onMapSelect, onEditSubmit, levelName, index, className }) => {
+const LocationNode = ({ node, isActive, isDimmed, onClick, onMapSelect, onEditSubmit, onDeleteSubmit, levelName, index, className }) => {
     const nodeRef = useRef(null);
     const hasChildren = node.children && node.children.length > 0;
 
@@ -127,16 +127,31 @@ const LocationNode = ({ node, isActive, isDimmed, onClick, onMapSelect, onEditSu
                     ) : (
                         <div className="flex items-center justify-between group">
                             <span className={`text-base font-serif font-bold truncate ${isActive ? 'text-orange-900' : 'text-stone-800'}`}>{node.name}</span>
-                            <button
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    setEditValue(node.name);
-                                    setIsEditing(true);
-                                }}
-                                className="opacity-0 group-hover:opacity-100 p-1.5 ml-1 text-stone-400 hover:text-orange-600 hover:bg-orange-50 rounded transition-all"
-                            >
-                                <Edit2 size={12} />
-                            </button>
+                            <div className="opacity-0 group-hover:opacity-100 flex p-0.5 ml-1 transition-all space-x-1">
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setEditValue(node.name);
+                                        setIsEditing(true);
+                                    }}
+                                    className="p-1.5 text-stone-400 hover:text-orange-600 hover:bg-orange-50 rounded"
+                                    title="Rename Location"
+                                >
+                                    <Edit2 size={12} />
+                                </button>
+                                {onDeleteSubmit && (
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            onDeleteSubmit(node);
+                                        }}
+                                        className="p-1.5 text-stone-400 hover:text-red-600 hover:bg-red-50 rounded"
+                                        title="Delete Location"
+                                    >
+                                        <Trash2 size={12} />
+                                    </button>
+                                )}
+                            </div>
                         </div>
                     )}
                 </div>
@@ -184,7 +199,8 @@ const LocationTree = ({
     activePath,
     onNodeSelect,
     onConfirmSelection,
-    onEditSubmit
+    onEditSubmit,
+    onDeleteSubmit
 }) => {
 
     // Flatten layers based on activePath
@@ -245,6 +261,11 @@ const LocationTree = ({
                                                 onEditSubmit(editedNode.level, editedNode.name, newName, parentName).then(success => {
                                                     if (success) onSuccess();
                                                 });
+                                            }
+                                        }}
+                                        onDeleteSubmit={(deletedNode) => {
+                                            if (onDeleteSubmit) {
+                                                onDeleteSubmit(deletedNode.level, deletedNode.name);
                                             }
                                         }}
                                         levelName={levelName}

@@ -1,14 +1,10 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { UserCircle, Search, Map, Home as HomeIcon } from 'lucide-react';
+import { UserCircle, Search, Map, Home as HomeIcon, Trash2 } from 'lucide-react';
 
 const Header = () => {
   return (
     <header className="bg-primary text-white shadow-md sticky top-0 z-50">
-      <Link to="/" className="flex items-center space-x-2">
-
-        <span className="text-2xl font-serif font-bold tracking-wide">বাড়ৈ বংশের ইতিবৃত্ত</span>
-      </Link>
       <div className="container mx-auto px-4 py-3 flex justify-between items-center">
 
 
@@ -28,14 +24,14 @@ const Header = () => {
           <Link to="/relation" className="hover:text-accent transition-colors">
             <span>Find Relation</span>
           </Link>
-          <Link to="/events" className="hover:text-accent transition-colors">
-            <span>Events</span>
+          <Link to="/board" className="hover:text-accent transition-colors">
+            <span>Events & Notices</span>
           </Link>
-          <Link to="/community" className="hover:text-accent transition-colors">
-            <span>Community Board</span>
+          <Link to="/committee" className="hover:text-accent transition-colors">
+            <span>Committee Board</span>
           </Link>
-          <Link to="/notices" className="hover:text-accent transition-colors">
-            <span>Announcement</span>
+          <Link to="/eminent" className="hover:text-accent transition-colors">
+            <span>Eminent Figures</span>
           </Link>
           <Link to="/help" className="hover:text-accent transition-colors">
             <span>Help Desk</span>

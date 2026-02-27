@@ -17,7 +17,13 @@ app.use(express.json());
 app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/members', require('./routes/memberRoutes'));
 app.use('/api/family', require('./routes/familyRoutes'));
+app.use('/api/committee', require('./routes/committee'));
+app.use('/api/eminent', require('./routes/eminent'));
+app.use('/api/notices', require('./routes/notices'));
+app.use('/api/events', require('./routes/events'));
+app.use('/api/help', require('./routes/help'));
 app.use('/api/upload', require('./routes/uploadRoutes'));
+app.use('/api/system', require('./routes/systemRoutes'));
 app.use('/uploads', express.static('uploads'));
 
 // Basic Route

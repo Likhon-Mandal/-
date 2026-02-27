@@ -1,14 +1,14 @@
 import React from 'react';
-import { X, MapPin, Briefcase, Calendar, Droplet, User, Edit } from 'lucide-react';
+import { X, MapPin, Briefcase, Calendar, Droplet, User, Edit, Trash2 } from 'lucide-react';
 
-const MemberProfileModal = ({ member, isOpen, onClose, onEdit }) => {
+const MemberProfileModal = ({ member, isOpen, onClose, onEdit, onDelete }) => {
     if (!isOpen || !member) return null;
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm transition-opacity">
             <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden relative animate-in fade-in zoom-in duration-200">
                 {/* Close Button */}
-                <button 
+                <button
                     onClick={onClose}
                     className="absolute top-4 right-4 z-10 p-2 bg-black/20 hover:bg-black/40 text-white rounded-full backdrop-blur-md transition-colors"
                 >
@@ -26,9 +26,9 @@ const MemberProfileModal = ({ member, isOpen, onClose, onEdit }) => {
                     <div className="-mt-16 mb-4 flex justify-between items-end">
                         <div className="w-32 h-32 rounded-full border-4 border-white shadow-lg bg-orange-50 overflow-hidden flex-shrink-0">
                             {member.profile_image_url ? (
-                                <img 
-                                    src={member.profile_image_url} 
-                                    alt={member.full_name} 
+                                <img
+                                    src={member.profile_image_url}
+                                    alt={member.full_name}
                                     className="w-full h-full object-cover"
                                 />
                             ) : (
@@ -37,17 +37,33 @@ const MemberProfileModal = ({ member, isOpen, onClose, onEdit }) => {
                                 </div>
                             )}
                         </div>
-                        
-                        {/* Edit Button (Floated right) */}
-                        <button
-                            onClick={() => {
-                                onEdit(member);
-                                onClose();
-                            }}
-                            className="mb-2 flex items-center gap-2 px-4 py-2 bg-stone-800 text-white text-sm font-medium rounded-full hover:bg-stone-700 transition-colors shadow-sm"
-                        >
-                            <Edit size={14} /> Edit
-                        </button>
+
+                        {/* Actions Suite */}
+                        <div className="flex flex-col gap-2 items-end mb-2">
+                            {/* Edit Button */}
+                            <button
+                                onClick={() => {
+                                    onEdit(member);
+                                    onClose();
+                                }}
+                                className="flex items-center gap-2 px-4 py-2 bg-stone-800 text-white text-sm font-medium rounded-full hover:bg-stone-700 transition-colors shadow-sm"
+                            >
+                                <Edit size={14} /> Edit
+                            </button>
+
+                            {/* Delete Button */}
+                            {onDelete && (
+                                <button
+                                    onClick={() => {
+                                        onDelete(member);
+                                        onClose();
+                                    }}
+                                    className="flex items-center gap-2 px-4 py-2 border border-red-200 text-red-600 bg-white text-sm font-medium rounded-full hover:bg-red-50 transition-colors shadow-sm"
+                                >
+                                    <Trash2 size={14} /> Delete
+                                </button>
+                            )}
+                        </div>
                     </div>
 
                     {/* Basic Info */}
@@ -80,7 +96,7 @@ const MemberProfileModal = ({ member, isOpen, onClose, onEdit }) => {
                                 {member.location || 'Unknown'}
                             </div>
                         </div>
-                         <div className="bg-stone-50 p-3 rounded-xl border border-stone-100 col-span-2">
+                        <div className="bg-stone-50 p-3 rounded-xl border border-stone-100 col-span-2">
                             <div className="text-xs text-stone-400 uppercase tracking-wider font-bold mb-1 flex items-center gap-1">
                                 <Calendar size={10} /> Born
                             </div>
@@ -93,8 +109,8 @@ const MemberProfileModal = ({ member, isOpen, onClose, onEdit }) => {
                         </div>
                     </div>
 
-                     {/* Bio / Additional Info */}
-                     {member.bio && (
+                    {/* Bio / Additional Info */}
+                    {member.bio && (
                         <div className="text-sm text-stone-600 leading-relaxed italic border-t pt-4">
                             "{member.bio}"
                         </div>

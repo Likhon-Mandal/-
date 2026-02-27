@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronRight, Map, Home, Plus, Edit2, Check, X } from 'lucide-react';
+import { ChevronRight, Map, Home, Plus, Edit2, Check, X, Trash2 } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import FamilyTree from '../components/FamilyTree';
 import LocationTree from '../components/LocationTree';
@@ -7,6 +7,7 @@ import MemberForm from '../components/MemberForm';
 import MemberProfileModal from '../components/MemberProfileModal';
 
 import LocationForm from '../components/LocationForm';
+import ConfirmModal from '../components/ConfirmModal';
 
 const Explorer = () => {
     const location = useLocation();
@@ -23,6 +24,7 @@ const Explorer = () => {
     const [addChildContext, setAddChildContext] = useState(null);
     const [selectedDetailMember, setSelectedDetailMember] = useState(null);
     const [isProfileOpen, setIsProfileOpen] = useState(false);
+    const [confirmModal, setConfirmModal] = useState({ isOpen: false, title: '', message: '', onConfirm: null });
 
     const [editingItem, setEditingItem] = useState(null);
     const [editValue, setEditValue] = useState('');
@@ -54,6 +56,74 @@ const Explorer = () => {
             alert('Server error updating location');
             return false;
         }
+    };
+
+    const handleDeleteMember = (member) => {
+        setConfirmModal({
+            isOpen: true,
+            title: `Delete ${member.full_name}?`,
+            message: `WARNING: Are you sure you want to permanently delete ${member.full_name}'s record?`,
+            onConfirm: async () => {
+                try {
+                    const response = await fetch(`http://localhost:5001/api/members/${member.id}`, {
+                        method: 'DELETE'
+                    });
+
+                    if (!response.ok) {
+                        const err = await response.json();
+                        alert(err.error || 'Failed to delete member');
+                        return;
+                    }
+
+                    // Refresh the details view
+                    const homeName = pathSegments[4]; // Index shifted
+                    const village = pathSegments[3]; // Index shifted
+                    if (homeName && village) {
+                        fetchHouseholdMembers(homeName, village);
+                    }
+                } catch (e) {
+                    console.error('Error deleting member:', e);
+                    alert('Server error deleting member');
+                }
+            }
+        });
+    };
+
+    const handleDeleteLocation = (level, name) => {
+        setConfirmModal({
+            isOpen: true,
+            title: `Delete ${name}?`,
+            message: `WARNING: Are you sure you want to delete ${name}? This will PERMANENTLY delete all sub-locations and family members within this location!`,
+            onConfirm: async () => {
+                try {
+                    const parentName = pathSegments.length > 0 ? pathSegments[pathSegments.length - 1] : null;
+                    let url = `http://localhost:5001/api/family/location?level=${level}&name=${encodeURIComponent(name)}`;
+                    if (parentName) {
+                        url += `&parentName=${encodeURIComponent(parentName)}`;
+                    }
+
+                    const response = await fetch(url, {
+                        method: 'DELETE'
+                    });
+
+                    if (!response.ok) {
+                        const err = await response.json();
+                        alert(err.error || 'Failed to delete location');
+                        return;
+                    }
+
+                    // Refresh view
+                    if (viewMode === 'grid') {
+                        fetchOptions(currentLevel, parentName);
+                    } else {
+                        buildHierarchyData();
+                    }
+                } catch (e) {
+                    console.error('Error deleting:', e);
+                    alert('Server error deleting location');
+                }
+            }
+        });
     };
 
     // Derive State from URL
@@ -167,7 +237,6 @@ const Explorer = () => {
 
     const fetchHouseholdMembers = async (homeName, village) => {
         try {
-            setLoading(true);
             const url = `http://localhost:5001/api/family/household?home_name=${encodeURIComponent(homeName)}&village=${encodeURIComponent(village)}`;
             const response = await fetch(url);
             if (!response.ok) throw new Error('Failed to fetch members');
@@ -176,8 +245,6 @@ const Explorer = () => {
         } catch (error) {
             console.error('Error fetching members:', error);
             setMembers([]);
-        } finally {
-            setLoading(false);
         }
     };
 
@@ -327,6 +394,14 @@ const Explorer = () => {
                         </div>
                     )}
 
+                    {/* Recycle Bin Button */}
+                    <button
+                        onClick={() => navigate('/recycle-bin')}
+                        className="flex items-center gap-2 bg-stone-100 text-stone-700 font-medium px-4 py-2 rounded-lg hover:bg-red-50 hover:text-red-700 hover:border-red-200 transition shadow-sm border border-stone-200"
+                    >
+                        <Trash2 size={18} /> Recycle Bin
+                    </button>
+
                     {/* Dynamic Add Button */}
                     <button
                         onClick={handleAddClick}
@@ -353,16 +428,14 @@ const Explorer = () => {
             </div>
 
             {/* Content Area */}
-            <div className="min-h-[200px]">
-                {loading ? (
-                    <div className="flex justify-center items-center h-full py-10 animate-pulse text-stone-400">
-                        Loading data...
-                    </div>
-                ) : currentLevel !== 'details' ? (
+            <div className="min-h-[200px] relative">
+                {currentLevel !== 'details' ? (
                     /* Options Grid */
                     viewMode === 'grid' ? (
                         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 animate-slide-up" style={{ animationDelay: '0.2s' }}>
-                            {options.length > 0 ? (
+                            {loading ? (
+                                <div className="col-span-full py-10 flex justify-center text-stone-400 animate-pulse">Loading data...</div>
+                            ) : options.length > 0 ? (
                                 options.map((item, idx) => (
                                     <div
                                         key={idx}
@@ -399,19 +472,32 @@ const Explorer = () => {
                                             </div>
                                         ) : (
                                             <>
-                                                {/* Edit Button */}
-                                                <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        setEditingItem(item);
-                                                        setEditValue(item);
-                                                    }}
-                                                    className="absolute top-2 right-2 p-1.5 text-stone-400 hover:text-orange-600 hover:bg-orange-50 rounded-md opacity-0 group-hover:opacity-100 transition-opacity"
-                                                >
-                                                    <Edit2 size={16} />
-                                                </button>
+                                                {/* Edit & Delete Buttons */}
+                                                <div className="absolute top-2 right-2 flex opacity-0 group-hover:opacity-100 transition-opacity space-x-1">
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setEditingItem(item);
+                                                            setEditValue(item);
+                                                        }}
+                                                        className="p-1.5 text-stone-400 hover:text-orange-600 hover:bg-orange-50 rounded-md"
+                                                        title="Rename"
+                                                    >
+                                                        <Edit2 size={16} />
+                                                    </button>
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            handleDeleteLocation(currentLevel, item);
+                                                        }}
+                                                        className="p-1.5 text-stone-400 hover:text-red-600 hover:bg-red-50 rounded-md"
+                                                        title="Delete"
+                                                    >
+                                                        <Trash2 size={16} />
+                                                    </button>
+                                                </div>
 
-                                                <div onClick={() => handleSelect(item)} className="cursor-pointer flex flex-col items-center w-full">
+                                                <div onClick={() => handleSelect(item)} className="cursor-pointer flex flex-col items-center w-full mt-4">
                                                     {currentLevel === 'home' ? (
                                                         <Home className="h-8 w-8 text-secondary group-hover:scale-110 transition-transform duration-300 mb-3" />
                                                     ) : (
@@ -436,6 +522,10 @@ const Explorer = () => {
                             <div className="absolute inset-0 opacity-[0.04] pointer-events-none"
                                 style={{ backgroundImage: 'linear-gradient(#9a3412 1px, transparent 1px), linear-gradient(90deg, #9a3412 1px, transparent 1px)', backgroundSize: '40px 40px' }}>
                             </div>
+
+                            {loading ? (
+                                <div className="absolute inset-0 flex items-center justify-center bg-white/50 z-10 animate-pulse text-stone-500">Loading hierarchy...</div>
+                            ) : null}
 
                             <LocationTree
                                 hierarchyData={hierarchyData}
@@ -470,6 +560,11 @@ const Explorer = () => {
                                     setSelectedDetailMember(member);
                                     setIsProfileOpen(true);
                                 }}
+                                onEditNode={(member) => {
+                                    setAddChildContext({ ...member, isRoot: !member.father_id && !member.mother_id });
+                                    setIsFormOpen(true);
+                                }}
+                                onDeleteNode={handleDeleteMember}
                                 onAddRoot={() => {
                                     setAddChildContext({
                                         level: 1,
@@ -481,7 +576,7 @@ const Explorer = () => {
                         </div>
                     </div>
                 )}
-            </div>
+            </div >
 
             {/* Member Form Modal */}
             {/* We need a state to hold specific parent info if 'Add Child' was clicked */}
@@ -507,6 +602,11 @@ const Explorer = () => {
                     setAddChildContext({ ...member, isRoot: !member.father_id && !member.mother_id });
                     setIsFormOpen(true);
                 }}
+                onDelete={(member) => {
+                    setIsProfileOpen(false);
+                    setSelectedDetailMember(null);
+                    handleDeleteMember(member);
+                }}
             />
 
             <LocationForm
@@ -517,7 +617,12 @@ const Explorer = () => {
                 onSuccess={handleLocationAdded}
             />
 
-        </div>
+            <ConfirmModal
+                {...confirmModal}
+                onClose={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+            />
+
+        </div >
     );
 };
 

@@ -63,7 +63,7 @@ const MemberSelector = ({ label, onSelect, selectedMember }) => {
     return (
         <div className="w-full relative" ref={dropdownRef}>
             <label className="block text-sm font-bold text-stone-700 mb-2 uppercase tracking-wider">{label}</label>
-            
+
             {selectedMember ? (
                 // Selected State
                 <div className="flex items-center justify-between p-4 bg-orange-50 border-2 border-orange-200 rounded-xl shadow-inner animate-fade-in">
@@ -76,14 +76,17 @@ const MemberSelector = ({ label, onSelect, selectedMember }) => {
                             )}
                         </div>
                         <div>
-                            <h3 className="font-bold text-lg text-stone-900">{selectedMember.full_name}</h3>
+                            <h3 className="font-bold text-lg text-stone-900">
+                                {selectedMember.full_name.replace(' (Root)', '')}
+                            </h3>
                             <p className="text-sm text-stone-500 flex items-center gap-1">
                                 <span className="inline-block w-2 h-2 rounded-full bg-green-500"></span>
                                 Level {selectedMember.level}
                             </p>
                         </div>
                     </div>
-                    <button 
+                    <button
+                        type="button"
                         onClick={handleClear}
                         className="p-2 bg-white rounded-full text-stone-400 hover:text-red-500 hover:bg-red-50 transition-colors shadow-sm"
                         title="Clear Selection"
@@ -103,10 +106,11 @@ const MemberSelector = ({ label, onSelect, selectedMember }) => {
                             placeholder="নাম লিখে খুঁজুন..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            onFocus={() => { if(searchResults.length > 0) setIsDropdownOpen(true) }}
+                            onFocus={() => { if (searchResults.length > 0) setIsDropdownOpen(true) }}
                             className="w-full pl-12 pr-16 py-4 rounded-xl border-2 border-stone-200 focus:border-orange-500 focus:ring-0 outline-none transition-all text-stone-800 font-medium placeholder:font-normal bg-white shadow-sm"
                         />
-                        <button 
+                        <button
+                            type="button"
                             onClick={() => setIsMapModalOpen(true)}
                             className="absolute right-2 p-2 bg-stone-100 text-stone-600 rounded-lg hover:bg-orange-100 hover:text-orange-700 transition duration-200 flex items-center justify-center group"
                             title="ম্যাপের মাধ্যমে খুঁজুন"
@@ -117,26 +121,29 @@ const MemberSelector = ({ label, onSelect, selectedMember }) => {
 
                     {/* Search Dropdown */}
                     {isDropdownOpen && (
-                        <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-stone-200 rounded-xl shadow-xl overflow-hidden z-50 animate-slide-up">
+                        <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-stone-200 rounded-xl shadow-xl overflow-hidden z-[100] animate-slide-up">
                             {isSearching ? (
                                 <div className="p-4 text-center text-sm text-stone-400 animate-pulse">খোঁজ করা হচ্ছে...</div>
                             ) : searchResults.length > 0 ? (
                                 <div className="max-h-64 overflow-y-auto">
                                     {searchResults.map((result) => (
                                         <button
+                                            type="button"
                                             key={result.id}
                                             onClick={() => handleSelect(result)}
                                             className="w-full text-left px-4 py-3 hover:bg-orange-50 border-b border-stone-100 last:border-0 flex items-center gap-3 transition-colors"
                                         >
                                             <div className="w-8 h-8 rounded-full bg-stone-100 flex items-center justify-center shrink-0 overflow-hidden border border-stone-200">
-                                                 {result.profile_image_url ? (
+                                                {result.profile_image_url ? (
                                                     <img src={result.profile_image_url} alt="Profile" className="w-full h-full object-cover" />
                                                 ) : (
                                                     <span className="font-serif font-bold text-stone-500 text-sm">{result.full_name.charAt(0)}</span>
                                                 )}
                                             </div>
                                             <div className="flex-1 min-w-0">
-                                                <p className="font-semibold text-stone-800 truncate">{result.full_name}</p>
+                                                <p className="font-semibold text-stone-800 truncate">
+                                                    {result.full_name.replace(' (Root)', '')}
+                                                </p>
                                                 <p className="text-xs text-stone-500 truncate">{result.home_name}, {result.village}, {result.district}</p>
                                             </div>
                                             <div className="text-xs font-bold text-orange-600 bg-orange-100 px-2 py-1 rounded">
@@ -156,10 +163,10 @@ const MemberSelector = ({ label, onSelect, selectedMember }) => {
             )}
 
             {/* Location Selection Modal */}
-            <LocationSelectionModal 
-                isOpen={isMapModalOpen} 
-                onClose={() => setIsMapModalOpen(false)} 
-                onSelectMember={handleSelect} 
+            <LocationSelectionModal
+                isOpen={isMapModalOpen}
+                onClose={() => setIsMapModalOpen(false)}
+                onSelectMember={handleSelect}
             />
         </div>
     );

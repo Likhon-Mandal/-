@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { User, Plus, X, GraduationCap, Briefcase, MapPin, Droplet, Calendar, Phone, Mail, Award, Landmark } from 'lucide-react';
+import { User, Plus, X, GraduationCap, Briefcase, MapPin, Droplet, Calendar, Phone, Mail, Award, Landmark, Edit2, Trash2, Building, Link, Facebook, Twitter, Instagram, Linkedin, Globe } from 'lucide-react';
 
 /* ANIMATION STYLES */
 const AnimationStyles = () => (
@@ -47,17 +47,17 @@ const InfoItem = ({ icon, label, value, highlight }) => (
         <div className={`p-2 rounded-xl shrink-0 ${highlight ? 'bg-red-100 text-red-600' : 'bg-orange-100 text-orange-600'}`}>
             {icon}
         </div>
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
             <p className="text-[9px] font-bold text-stone-400 uppercase tracking-widest mb-0.5">{label}</p>
-            <p className={`text-sm font-bold truncate ${highlight ? 'text-red-700' : 'text-stone-700'}`}>
+            <div className={`text-sm font-bold break-words ${highlight ? 'text-red-700' : 'text-stone-700'}`}>
                 {value || 'N/A'}
-            </p>
+            </div>
         </div>
     </div>
 );
 
 /* DETAILS MODAL COMPONENT */
-const PersonDetailsModal = ({ person, onClose }) => {
+const PersonDetailsModal = ({ person, onClose, onEditNode, onDeleteNode }) => {
     if (!person) return null;
 
     return (
@@ -68,18 +68,26 @@ const PersonDetailsModal = ({ person, onClose }) => {
             >
                 <div className="md:w-1/3 bg-gradient-to-br from-orange-700 to-orange-900 p-8 text-white flex flex-col items-center justify-center relative overflow-hidden shrink-0">
                     <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)', backgroundSize: '20px 20px' }}></div>
-                    <div className="relative mb-6">
-                        <div className="w-32 h-32 rounded-full border-4 border-white/30 p-1 shadow-2xl relative z-10">
-                            <div className="w-full h-full rounded-full overflow-hidden bg-white/20 backdrop-blur-md flex items-center justify-center">
-                                {person.profile_image_url ? (
-                                    <img src={person.profile_image_url} alt={person.full_name} className="w-full h-full object-cover" />
-                                ) : (
-                                    <User size={64} className="text-white/40" />
-                                )}
+                    <div className="relative mb-6 flex flex-col items-center">
+                        {person.eminent_category && (
+                            <div className="mb-4 z-20 flex items-center gap-1.5 bg-green-100 text-green-800 border-2 border-white rounded-full px-4 py-1.5 text-[10px] font-black uppercase tracking-[0.15em] shadow-xl whitespace-nowrap">
+                                <Award size={12} className="text-green-600" />
+                                {person.eminent_category}
                             </div>
-                        </div>
-                        <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-yellow-500 text-orange-950 text-[10px] font-black px-3 py-1 rounded-full shadow-lg uppercase tracking-tighter">
-                            Gen {person.level}
+                        )}
+                        <div className="relative">
+                            <div className="w-32 h-32 rounded-full border-4 border-white/30 p-1 shadow-2xl relative z-10 mx-auto">
+                                <div className="w-full h-full rounded-full overflow-hidden bg-white/20 backdrop-blur-md flex items-center justify-center">
+                                    {person.profile_image_url ? (
+                                        <img src={person.profile_image_url} alt={person.full_name} className="w-full h-full object-cover" />
+                                    ) : (
+                                        <User size={64} className="text-white/40" />
+                                    )}
+                                </div>
+                            </div>
+                            <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-white text-orange-900 text-[10px] font-black px-3 py-1 rounded-full shadow-lg uppercase tracking-tighter z-20 whitespace-nowrap">
+                                Gen {person.level}
+                            </div>
                         </div>
                     </div>
                     <div className="text-center relative z-10">
@@ -93,17 +101,36 @@ const PersonDetailsModal = ({ person, onClose }) => {
                 </div>
 
                 <div className="md:w-2/3 p-10 bg-white relative flex flex-col">
-                    <button onClick={onClose} className="absolute top-6 right-6 p-2 text-stone-400 hover:text-stone-800 hover:bg-stone-100 rounded-full transition-all">
+                    <button onClick={onClose} className="absolute top-6 right-6 p-2 text-stone-400 hover:text-stone-800 hover:bg-stone-100 rounded-full transition-all z-10">
                         <X size={20} />
                     </button>
-                    <h4 className="text-xs font-black uppercase tracking-[0.3em] text-stone-300 mb-8 border-b border-stone-100 pb-4">Ancestral Record Information</h4>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 flex-grow">
+
+                    <h4 className="text-xs font-black uppercase tracking-[0.3em] text-stone-300 mb-8 border-b border-stone-100 pb-4 mt-2">Ancestral Record Information</h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 flex-grow">
                         <InfoItem icon={<Briefcase size={16} />} label="Current Occupation" value={person.occupation} />
+                        <InfoItem icon={<Building size={16} />} label="Workplace" value={person.workplace} />
                         <InfoItem icon={<GraduationCap size={16} />} label="Educational background" value={person.education} />
-                        <InfoItem icon={<MapPin size={16} />} label="Ancestral Village / Location" value={person.location} />
+                        <InfoItem icon={<Phone size={16} />} label="Contact Number" value={person.contact_number} />
+
+                        {person.social_media ? (
+                            <InfoItem
+                                icon={
+                                    person.social_media.toLowerCase().includes('facebook') ? <Facebook size={16} /> :
+                                        person.social_media.toLowerCase().includes('instagram') ? <Instagram size={16} /> :
+                                            person.social_media.toLowerCase().includes('twitter') || person.social_media.toLowerCase().includes('x.com') ? <Twitter size={16} /> :
+                                                person.social_media.toLowerCase().includes('linkedin') ? <Linkedin size={16} /> :
+                                                    <Globe size={16} />
+                                }
+                                label="Social Media"
+                                value={<a href={person.social_media.startsWith('http') ? person.social_media : `https://${person.social_media}`} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 hover:underline">Visit Profile</a>}
+                            />
+                        ) : (
+                            <InfoItem icon={<Link size={16} />} label="Social Media" value="N/A" />
+                        )}
+
                         <InfoItem icon={<Droplet size={16} />} label="Emergency Blood Group" value={person.blood_group} highlight />
-                        <InfoItem icon={<Landmark size={16} />} label="District of Origin" value={person.district || 'Barishal'} />
-                        <InfoItem icon={<Award size={16} />} label="Social Contribution" value="Community Member" />
+                        <InfoItem icon={<MapPin size={16} />} label="Ancestral Village" value={person.village || person.location} />
+                        <InfoItem icon={<MapPin size={16} />} label="Current Location" value={person.present_address} />
                     </div>
                 </div>
             </div>
@@ -112,7 +139,7 @@ const PersonDetailsModal = ({ person, onClose }) => {
 };
 
 /* TreeNode Component */
-const TreeNode = ({ node, isActive, isDimmed, onClick, onAddChild, onViewDetails, level, index, className }) => {
+const TreeNode = ({ node, isActive, isDimmed, onClick, onAddChild, onViewDetails, onEditNode, onDeleteNode, level, index, className }) => {
     const nodeRef = useRef(null);
     const hasChildren = node.children && node.children.length > 0;
     const childrenCount = node.children ? node.children.length : 0;
@@ -148,7 +175,7 @@ const TreeNode = ({ node, isActive, isDimmed, onClick, onAddChild, onViewDetails
                     onClick();
                 }}
                 className={`
-                    relative z-30 flex flex-col items-center w-44 pt-4 pb-6
+                    group relative z-30 flex flex-col items-center w-44 pt-4 pb-6
                     bg-white rounded-2xl cursor-pointer 
                     transition-all duration-400 ease-[cubic-bezier(0.25,0.1,0.25,1)]
                     border mb-0
@@ -164,6 +191,34 @@ const TreeNode = ({ node, isActive, isDimmed, onClick, onAddChild, onViewDetails
                 {isActive && level > 1 && (
                     <div className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-1 bg-orange-500 rounded-b-full"></div>
                 )}
+
+                {/* Edit & Delete Actions (Always Visible on Top Right) */}
+                <div className="absolute top-2 right-2 flex gap-1 z-50">
+                    {onDeleteNode && (
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onDeleteNode(node);
+                            }}
+                            className="p-1.5 text-stone-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                            title="Delete Member"
+                        >
+                            <Trash2 size={14} />
+                        </button>
+                    )}
+                    {onEditNode && (
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onEditNode(node);
+                            }}
+                            className="p-1.5 text-stone-400 hover:text-orange-600 hover:bg-orange-50 rounded-md transition-colors"
+                            title="Edit Member"
+                        >
+                            <Edit2 size={14} />
+                        </button>
+                    )}
+                </div>
 
                 {/* Profile Picture */}
                 <div
@@ -205,6 +260,13 @@ const TreeNode = ({ node, isActive, isDimmed, onClick, onAddChild, onViewDetails
                     </div>
                 </div>
 
+                {node.eminent_category && (
+                    <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 flex items-center gap-1 bg-yellow-50 text-yellow-700 border border-yellow-200 text-[7px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wider whitespace-nowrap z-20">
+                        <Award size={8} className="text-yellow-600" />
+                        {node.eminent_category}
+                    </div>
+                )}
+
                 {/* Centered Add Button */}
                 <button
                     onClick={(e) => {
@@ -232,8 +294,8 @@ const TreeNode = ({ node, isActive, isDimmed, onClick, onAddChild, onViewDetails
 };
 
 /* Main Component */
-const FamilyTree = ({ members, onAddChild, onAddRoot }) => {
-    const [activePath, setActivePath] = useState([]);
+const FamilyTree = ({ members, onAddChild, onAddRoot, onEditNode, onDeleteNode }) => {
+    const [activePathIds, setActivePathIds] = useState([]);
     const [selectedPerson, setSelectedPerson] = useState(null);
 
     // Transform Flat List to Hierarchy
@@ -272,29 +334,45 @@ const FamilyTree = ({ members, onAddChild, onAddRoot }) => {
                 roots.push(map[memberId]);
             }
         });
-        return roots;
+
+        // Now sort the constructed arrays chronologically by created_at to guarantee left-to-right order
+        members.forEach(member => {
+            const memberNode = map[String(member.id)];
+            if (memberNode && memberNode.children.length > 0) {
+                // Sort children by created_at to maintain insertion order left-to-right
+                memberNode.children.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+            }
+        });
+
+        return roots.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
     }, [members]);
 
     const handleNodeClick = (node, depth) => {
-        const isSameNode = activePath[depth]?.id === node.id;
+        const isSameNode = activePathIds[depth] === node.id;
         if (isSameNode) {
-            setActivePath(activePath.slice(0, depth));
+            setActivePathIds(activePathIds.slice(0, depth));
         } else {
-            const newPath = activePath.slice(0, depth);
-            newPath.push(node);
-            setActivePath(newPath);
+            const newPath = activePathIds.slice(0, depth);
+            newPath.push(node.id);
+            setActivePathIds(newPath);
         }
     };
 
     const layers = useMemo(() => {
         const _layers = [roots];
-        activePath.forEach((node) => {
-            if (node.children && node.children.length > 0) {
-                _layers.push(node.children);
+        let currentNodes = roots;
+
+        activePathIds.forEach((activeId) => {
+            const activeNode = currentNodes?.find(n => n.id === activeId);
+            if (activeNode && activeNode.children && activeNode.children.length > 0) {
+                _layers.push(activeNode.children);
+                currentNodes = activeNode.children;
+            } else {
+                currentNodes = [];
             }
         });
         return _layers;
-    }, [roots, activePath]);
+    }, [roots, activePathIds]);
 
     return (
         <div className="min-h-screen bg-[#fffcf5] p-8 font-sans flex flex-col items-center overflow-x-hidden">
@@ -305,6 +383,8 @@ const FamilyTree = ({ members, onAddChild, onAddRoot }) => {
                 <PersonDetailsModal
                     person={selectedPerson}
                     onClose={() => setSelectedPerson(null)}
+                    onEditNode={onEditNode}
+                    onDeleteNode={onDeleteNode}
                 />
             )}
 
@@ -335,7 +415,7 @@ const FamilyTree = ({ members, onAddChild, onAddRoot }) => {
             {/* Tree Content Area */}
             <div className="w-full flex flex-col gap-0 pb-32">
                 {layers.map((layerNodes, layerIndex) => {
-                    const activeNodeId = activePath[layerIndex]?.id;
+                    const activeNodeId = activePathIds[layerIndex];
                     const hasActiveNode = !!activeNodeId;
 
                     return (
@@ -363,6 +443,8 @@ const FamilyTree = ({ members, onAddChild, onAddRoot }) => {
                                                 onClick={() => handleNodeClick(node, layerIndex)}
                                                 onAddChild={onAddChild}
                                                 onViewDetails={setSelectedPerson}
+                                                onEditNode={onEditNode}
+                                                onDeleteNode={onDeleteNode}
                                                 level={node.level || (layerIndex + 1)}
                                             />
                                         ))}
