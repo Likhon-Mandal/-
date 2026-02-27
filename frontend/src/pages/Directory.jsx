@@ -1,7 +1,6 @@
-﻿import React, { useState, useEffect } from 'react';
-import { Search, Filter, Users } from 'lucide-react';
-import MemberCard from '../components/MemberCard';
+﻿import MemberCard from '../components/MemberCard';
 import Profile from './Profile';
+import api from '../api/api';
 
 const Directory = () => {
   const [members, setMembers] = useState([]);
@@ -43,18 +42,17 @@ const Directory = () => {
   const fetchMembers = async () => {
     try {
       setLoading(true);
-      const params = new URLSearchParams();
-      if (filters.name) params.append('name', filters.name);
-      if (filters.workplace) params.append('workplace', filters.workplace);
-      if (filters.education) params.append('education', filters.education);
-      if (filters.blood_group) params.append('blood_group', filters.blood_group);
-      if (filters.country) params.append('country', filters.country);
-      if (filters.division) params.append('division', filters.division);
-      if (filters.district) params.append('district', filters.district);
-      const response = await fetch(`http://localhost:5001/api/members?${params.toString()}`);
-      if (!response.ok) throw new Error('Failed to fetch');
-      const data = await response.json();
-      setMembers(data);
+      const params = {};
+      if (filters.name) params.name = filters.name;
+      if (filters.workplace) params.workplace = filters.workplace;
+      if (filters.education) params.education = filters.education;
+      if (filters.blood_group) params.blood_group = filters.blood_group;
+      if (filters.country) params.country = filters.country;
+      if (filters.division) params.division = filters.division;
+      if (filters.district) params.district = filters.district;
+
+      const response = await api.get('/members', { params });
+      setMembers(response.data);
     } catch (error) {
       console.error(error);
       setMembers([]);

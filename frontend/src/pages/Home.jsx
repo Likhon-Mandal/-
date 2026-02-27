@@ -1,8 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { Bell, HelpCircle, Star, ArrowRight, User, Calendar, MapPin, Activity, ChevronRight, AlertCircle, Edit2, Trash2 } from 'lucide-react';
 import ImageSlider from '../components/ImageSlider';
 import HelpRequestModal from '../components/HelpRequestModal';
+import api from '../api/api';
+import { useAuth } from '../context/AuthContext';
 
 /* ANIMATION STYLES */
 const AnimationStyles = () => (
@@ -88,6 +87,7 @@ const Home = () => {
     const [announcements, setAnnouncements] = useState([]);
     const [loadingAnnouncements, setLoadingAnnouncements] = useState(true);
 
+    const { isAdmin } = useAuth();
     const [helpRequests, setHelpRequests] = useState([]);
     const [loadingHelp, setLoadingHelp] = useState(true);
     const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
@@ -96,28 +96,26 @@ const Home = () => {
     const fetchHelpData = async () => {
         try {
             setLoadingHelp(true);
-            const res = await fetch('http://localhost:5001/api/help');
-            if (res.ok) {
-                const data = await res.json();
+            const res = await api.get('/help');
+            const data = res.data;
 
-                const formattedHelp = data.map(h => {
-                    const diffTime = Math.abs(new Date() - new Date(h.created_at));
-                    const diffHours = Math.floor(diffTime / (1000 * 60 * 60));
-                    const timeAgo = diffHours < 24 ? `${diffHours}h ago` : `${Math.floor(diffHours / 24)}d ago`;
+            const formattedHelp = data.map(h => {
+                const diffTime = Math.abs(new Date() - new Date(h.created_at));
+                const diffHours = Math.floor(diffTime / (1000 * 60 * 60));
+                const timeAgo = diffHours < 24 ? `${diffHours}h ago` : `${Math.floor(diffHours / 24)}d ago`;
 
-                    return {
-                        id: h.id,
-                        title: h.title,
-                        date: timeAgo,
-                        tag: h.tag,
-                        type: h.type,
-                        posted_by: h.posted_by,
-                        content: h.content
-                    };
-                });
+                return {
+                    id: h.id,
+                    title: h.title,
+                    date: timeAgo,
+                    tag: h.tag,
+                    type: h.type,
+                    posted_by: h.posted_by,
+                    content: h.content
+                };
+            });
 
-                setHelpRequests(formattedHelp.slice(0, 3)); // Show top 3
-            }
+            setHelpRequests(formattedHelp.slice(0, 3)); // Show top 3
         } catch (error) {
             console.error(error);
         } finally {
@@ -130,15 +128,12 @@ const Home = () => {
             try {
                 setLoadingAnnouncements(true);
                 const [noticesRes, eventsRes] = await Promise.all([
-                    fetch('http://localhost:5001/api/notices'),
-                    fetch('http://localhost:5001/api/events')
+                    api.get('/notices'),
+                    api.get('/events')
                 ]);
 
-                let noticesData = [];
-                let eventsData = [];
-
-                if (noticesRes.ok) noticesData = await noticesRes.json();
-                if (eventsRes.ok) eventsData = await eventsRes.json();
+                const noticesData = noticesRes.data || [];
+                const eventsData = eventsRes.data || [];
 
                 const formattedNotices = noticesData.map(n => ({
                     id: `n-${n.id}`,
@@ -174,10 +169,11 @@ const Home = () => {
     const handleDeleteHelp = async (id) => {
         if (!window.confirm("Are you sure you want to delete this specific request?")) return;
         try {
-            const res = await fetch(`http://localhost:5001/api/help/${id}`, { method: 'DELETE' });
-            if (res.ok) fetchHelpData();
+            await api.delete(`/help/${id}`);
+            fetchHelpData();
         } catch (error) {
             console.error(error);
+            alert(error.response?.data?.error || "Failed to delete request");
         }
     };
 
@@ -274,22 +270,24 @@ const Home = () => {
                                 helpRequests.map(item => (
                                     <div key={item.id} className="relative group/helpitem">
                                         <ListItem icon={AlertCircle} type={item.type} to="/help" {...item} />
-                                        <div className="absolute top-4 right-10 z-10 flex gap-1 opacity-0 group-hover/helpitem:opacity-100 transition-opacity">
-                                            <button
-                                                onClick={(e) => { e.preventDefault(); e.stopPropagation(); setEditingHelp(item); setIsHelpModalOpen(true); }}
-                                                className="p-1.5 text-stone-300 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"
-                                                title="Edit Request"
-                                            >
-                                                <Edit2 size={14} />
-                                            </button>
-                                            <button
-                                                onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleDeleteHelp(item.id); }}
-                                                className="p-1.5 text-stone-300 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                                                title="Delete Request"
-                                            >
-                                                <Trash2 size={14} />
-                                            </button>
-                                        </div>
+                                        {isAdmin && (
+                                            <div className="absolute top-4 right-10 z-10 flex gap-1 opacity-0 group-hover/helpitem:opacity-100 transition-opacity">
+                                                <button
+                                                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); setEditingHelp(item); setIsHelpModalOpen(true); }}
+                                                    className="p-1.5 text-stone-300 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"
+                                                    title="Edit Request"
+                                                >
+                                                    <Edit2 size={14} />
+                                                </button>
+                                                <button
+                                                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleDeleteHelp(item.id); }}
+                                                    className="p-1.5 text-stone-300 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                                    title="Delete Request"
+                                                >
+                                                    <Trash2 size={14} />
+                                                </button>
+                                            </div>
+                                        )}
                                     </div>
                                 ))
                             ) : (
