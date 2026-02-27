@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Award, GraduationCap, Flame, Star, Plus, MapPin, Pencil, Trash2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import EminentFormModal from '../components/EminentFormModal';
+import { useAuth } from '../context/AuthContext';
+import api from '../api/api';
 
 const categories = [
     { id: 'কৃতি শিক্ষার্থী', label: 'কৃতি শিক্ষার্থী', icon: GraduationCap, bg: 'from-blue-600 to-indigo-800', badge: 'bg-blue-100 text-blue-800', textMain: 'text-white', textSub: 'text-white/80', tagBadge: 'bg-white/20 border-white/30 text-white' },
@@ -10,6 +12,7 @@ const categories = [
 ];
 
 const EminentFigures = () => {
+    const { isAdmin } = useAuth();
     const [figures, setFigures] = useState([]);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState(categories[0].id);
@@ -19,10 +22,8 @@ const EminentFigures = () => {
     const fetchFigures = async () => {
         try {
             setLoading(true);
-            const res = await fetch('http://localhost:5001/api/eminent');
-            if (!res.ok) throw new Error("Failed to fetch eminent figures");
-            const data = await res.json();
-            setFigures(data);
+            const res = await api.get('/eminent');
+            setFigures(res.data);
         } catch (error) {
             console.error(error);
         } finally {
@@ -37,12 +38,11 @@ const EminentFigures = () => {
     const handleDelete = async (id) => {
         if (!window.confirm("Are you sure you want to remove this recognition?")) return;
         try {
-            const res = await fetch(`http://localhost:5001/api/eminent/${id}`, { method: 'DELETE' });
-            if (!res.ok) throw new Error("Failed to delete");
+            await api.delete(`/eminent/${id}`);
             fetchFigures();
         } catch (error) {
             console.error(error);
-            alert(error.message);
+            alert(error.response?.data?.error || error.message);
         }
     };
 
@@ -78,13 +78,15 @@ const EminentFigures = () => {
                         </p>
                     </div>
 
-                    <button
-                        onClick={handleCreateNew}
-                        className="group bg-white hover:bg-stone-50 px-6 py-3 rounded-xl font-bold transition-all shadow-xl hover:shadow-2xl active:scale-95 flex items-center gap-2 whitespace-nowrap"
-                    >
-                        <Plus size={20} className="text-orange-600 group-hover:rotate-90 transition-transform" />
-                        <span className="text-orange-900">Add Figure</span>
-                    </button>
+                    {isAdmin && (
+                        <button
+                            onClick={handleCreateNew}
+                            className="group bg-white hover:bg-stone-50 px-6 py-3 rounded-xl font-bold transition-all shadow-xl hover:shadow-2xl active:scale-95 flex items-center gap-2 whitespace-nowrap"
+                        >
+                            <Plus size={20} className="text-orange-600 group-hover:rotate-90 transition-transform" />
+                            <span className="text-orange-900">Add Figure</span>
+                        </button>
+                    )}
                 </div>
             </div>
 
@@ -120,16 +122,18 @@ const EminentFigures = () => {
                         {displayFigures.length > 0 ? (
                             displayFigures.map(figure => (
                                 <div key={figure.id} className="group bg-white rounded-3xl border border-stone-200 overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1 relative focus-within:ring-2 ring-orange-400">
-                                    {/* Action Buttons Overlay */}
-                                    <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity z-10 bg-white/80 backdrop-blur px-2 py-1 rounded-xl shadow-sm border border-stone-100">
-                                        <button onClick={() => handleEdit(figure)} className="p-1.5 text-stone-500 hover:text-orange-600 transition-colors" title="Edit">
-                                            <Pencil size={14} />
-                                        </button>
-                                        <div className="w-px bg-stone-200"></div>
-                                        <button onClick={() => handleDelete(figure.id)} className="p-1.5 text-stone-500 hover:text-red-600 transition-colors" title="Remove">
-                                            <Trash2 size={14} />
-                                        </button>
-                                    </div>
+                                    {/* Action Buttons Overlay — Admin Only */}
+                                    {isAdmin && (
+                                        <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity z-10 bg-white/80 backdrop-blur px-2 py-1 rounded-xl shadow-sm border border-stone-100">
+                                            <button onClick={() => handleEdit(figure)} className="p-1.5 text-stone-500 hover:text-orange-600 transition-colors" title="Edit">
+                                                <Pencil size={14} />
+                                            </button>
+                                            <div className="w-px bg-stone-200"></div>
+                                            <button onClick={() => handleDelete(figure.id)} className="p-1.5 text-stone-500 hover:text-red-600 transition-colors" title="Remove">
+                                                <Trash2 size={14} />
+                                            </button>
+                                        </div>
+                                    )}
 
                                     <Link to={`/member/${figure.member_id}`} className="block p-6">
                                         <div className="flex items-start gap-4 mb-4">
@@ -180,9 +184,11 @@ const EminentFigures = () => {
                                 </div>
                                 <h3 className="text-xl font-bold text-stone-600 mb-2">No Records Found</h3>
                                 <p className="text-stone-400 max-w-sm">No members have been added to the {currentCategoryInfo.label} category yet.</p>
-                                <button onClick={handleCreateNew} className="mt-6 text-orange-600 font-bold hover:underline flex items-center gap-1">
-                                    <Plus size={16} /> Add the first one
-                                </button>
+                                {isAdmin && (
+                                    <button onClick={handleCreateNew} className="mt-6 text-orange-600 font-bold hover:underline flex items-center gap-1">
+                                        <Plus size={16} /> Add the first one
+                                    </button>
+                                )}
                             </div>
                         )}
                     </div>

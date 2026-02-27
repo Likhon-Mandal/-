@@ -2,8 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Users, Calendar, ChevronDown, Plus, UserCircle2, MapPin, Briefcase, Pencil, Trash2 } from 'lucide-react';
 import CommitteeFormModal from '../components/CommitteeFormModal';
+import { useAuth } from '../context/AuthContext';
+import api from '../api/api';
 
 const CommitteeBoard = () => {
+    const { isAdmin } = useAuth();
     const [committees, setCommittees] = useState([]);
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -15,10 +18,8 @@ const CommitteeBoard = () => {
     const fetchCommittees = async () => {
         try {
             setLoading(true);
-            const res = await fetch('http://localhost:5001/api/committee');
-            if (!res.ok) throw new Error("Failed to fetch committees");
-            const data = await res.json();
-            setCommittees(data);
+            const res = await api.get('/committee');
+            setCommittees(res.data);
         } catch (error) {
             console.error(error);
         } finally {
@@ -50,12 +51,11 @@ const CommitteeBoard = () => {
     const handleDelete = async (id) => {
         if (!window.confirm("Are you sure you want to delete this committee?")) return;
         try {
-            const res = await fetch(`http://localhost:5001/api/committee/${id}`, { method: 'DELETE' });
-            if (!res.ok) throw new Error("Failed to delete committee");
+            await api.delete(`/committee/${id}`);
             fetchCommittees();
         } catch (error) {
             console.error(error);
-            alert(error.message);
+            alert(error.response?.data?.error || error.message);
         }
     };
 
@@ -155,13 +155,15 @@ const CommitteeBoard = () => {
                         </p>
                     </div>
 
-                    <button
-                        onClick={handleCreateNew}
-                        className="group bg-white hover:bg-orange-50 text-orange-900 hover:text-orange-600 px-5 py-2.5 rounded-xl font-bold transition-all shadow-xl hover:shadow-2xl active:scale-95 flex items-center gap-2 whitespace-nowrap text-sm"
-                    >
-                        <Plus size={18} className="group-hover:rotate-90 transition-transform" />
-                        Form New Committee
-                    </button>
+                    {isAdmin && (
+                        <button
+                            onClick={handleCreateNew}
+                            className="group bg-white hover:bg-orange-50 text-orange-900 hover:text-orange-600 px-5 py-2.5 rounded-xl font-bold transition-all shadow-xl hover:shadow-2xl active:scale-95 flex items-center gap-2 whitespace-nowrap text-sm"
+                        >
+                            <Plus size={18} className="group-hover:rotate-90 transition-transform" />
+                            Form New Committee
+                        </button>
+                    )}
                 </div>
             </div>
 
@@ -190,14 +192,16 @@ const CommitteeBoard = () => {
                                         <Calendar size={18} />
                                         <span>{formatDate(currentCommittee.start_date)} — {formatDate(currentCommittee.end_date)}</span>
                                     </div>
-                                    <div className="flex items-center gap-2">
-                                        <button onClick={() => handleEdit(currentCommittee)} className="p-2 text-stone-500 hover:text-orange-600 bg-stone-50 hover:bg-orange-50 border border-stone-200 rounded-lg transition-colors" title="Edit Committee">
-                                            <Pencil size={18} />
-                                        </button>
-                                        <button onClick={() => handleDelete(currentCommittee.id)} className="p-2 text-stone-500 hover:text-red-600 bg-stone-50 hover:bg-red-50 border border-stone-200 rounded-lg transition-colors" title="Delete Committee">
-                                            <Trash2 size={18} />
-                                        </button>
-                                    </div>
+                                    {isAdmin && (
+                                        <div className="flex items-center gap-2">
+                                            <button onClick={() => handleEdit(currentCommittee)} className="p-2 text-stone-500 hover:text-orange-600 bg-stone-50 hover:bg-orange-50 border border-stone-200 rounded-lg transition-colors" title="Edit Committee">
+                                                <Pencil size={18} />
+                                            </button>
+                                            <button onClick={() => handleDelete(currentCommittee.id)} className="p-2 text-stone-500 hover:text-red-600 bg-stone-50 hover:bg-red-50 border border-stone-200 rounded-lg transition-colors" title="Delete Committee">
+                                                <Trash2 size={18} />
+                                            </button>
+                                        </div>
+                                    )}
                                 </div>
 
                                 {renderCommitteeMembers(currentCommittee.members)}
@@ -235,14 +239,16 @@ const CommitteeBoard = () => {
                                                         </div>
                                                     </div>
                                                     <div className="flex items-center gap-3">
-                                                        <div className="flex gap-2 mr-2" onClick={e => e.stopPropagation()}>
-                                                            <button onClick={() => handleEdit(committee)} className="p-1.5 text-stone-400 hover:text-orange-600 hover:bg-orange-100 rounded transition-colors" title="Edit">
-                                                                <Pencil size={16} />
-                                                            </button>
-                                                            <button onClick={() => handleDelete(committee.id)} className="p-1.5 text-stone-400 hover:text-red-600 hover:bg-red-100 rounded transition-colors" title="Delete">
-                                                                <Trash2 size={16} />
-                                                            </button>
-                                                        </div>
+                                                        {isAdmin && (
+                                                            <div className="flex gap-2 mr-2" onClick={e => e.stopPropagation()}>
+                                                                <button onClick={() => handleEdit(committee)} className="p-1.5 text-stone-400 hover:text-orange-600 hover:bg-orange-100 rounded transition-colors" title="Edit">
+                                                                    <Pencil size={16} />
+                                                                </button>
+                                                                <button onClick={() => handleDelete(committee.id)} className="p-1.5 text-stone-400 hover:text-red-600 hover:bg-red-100 rounded transition-colors" title="Delete">
+                                                                    <Trash2 size={16} />
+                                                                </button>
+                                                            </div>
+                                                        )}
                                                         <div className={`p-2 rounded-full transition-transform duration-300 ${isExpanded ? 'bg-orange-200 text-orange-800 rotate-180' : 'bg-stone-100 text-stone-500'}`}>
                                                             <ChevronDown size={20} />
                                                         </div>

@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { User, MapPin, Calendar, Briefcase, GraduationCap, Phone, Droplet, X } from 'lucide-react';
+import { User, MapPin, Calendar, Briefcase, GraduationCap, Phone, Droplet, X, Edit } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+import api from '../api/api';
 
 const Profile = ({ memberId, onClose }) => {
+  const { isAdmin } = useAuth();
   const params = useParams();
   const navigate = useNavigate();
   const id = memberId || params.id;
@@ -19,10 +20,8 @@ const Profile = ({ memberId, onClose }) => {
   const fetchMemberDetails = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`http://localhost:5001/api/members/${id}`);
-      if (!response.ok) throw new Error('Member not found');
-      const data = await response.json();
-      setMember(data);
+      const res = await api.get(`/members/${id}`);
+      setMember(res.data);
     } catch (error) {
       console.error(error);
       // Mock data

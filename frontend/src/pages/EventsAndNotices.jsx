@@ -2,8 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { Calendar, HelpCircle, Plus, Trash2, Edit2, Megaphone, ChevronDown, ChevronUp, MapPin, Clock } from 'lucide-react';
 import NoticeFormModal from '../components/NoticeFormModal';
 import EventFormModal from '../components/EventFormModal';
+import { useAuth } from '../context/AuthContext';
+import api from '../api/api';
 
 const EventsAndNotices = () => {
+    const { isAdmin } = useAuth();
     // ---- NOTICES LOGIC ----
     const [notices, setNotices] = useState([]);
     const [loadingNotices, setLoadingNotices] = useState(true);
@@ -18,10 +21,8 @@ const EventsAndNotices = () => {
     const fetchNotices = async () => {
         try {
             setLoadingNotices(true);
-            const res = await fetch('http://localhost:5001/api/notices');
-            if (!res.ok) throw new Error("Failed to fetch notices");
-            const data = await res.json();
-            setNotices(data);
+            const res = await api.get('/notices');
+            setNotices(res.data);
         } catch (error) {
             console.error(error);
         } finally {
@@ -36,12 +37,11 @@ const EventsAndNotices = () => {
     const handleDelete = async (id) => {
         if (!window.confirm("Are you sure you want to remove this notice?")) return;
         try {
-            const res = await fetch(`http://localhost:5001/api/notices/${id}`, { method: 'DELETE' });
-            if (!res.ok) throw new Error("Failed to delete");
+            await api.delete(`/notices/${id}`);
             fetchNotices();
         } catch (error) {
             console.error(error);
-            alert(error.message);
+            alert(error.response?.data?.error || error.message);
         }
     };
 
@@ -65,10 +65,8 @@ const EventsAndNotices = () => {
     const fetchEvents = async () => {
         try {
             setLoadingEvents(true);
-            const res = await fetch('http://localhost:5001/api/events');
-            if (!res.ok) throw new Error("Failed to fetch events");
-            const data = await res.json();
-            setEvents(data);
+            const res = await api.get('/events');
+            setEvents(res.data);
         } catch (error) {
             console.error(error);
         } finally {
@@ -84,12 +82,11 @@ const EventsAndNotices = () => {
     const handleDeleteEvent = async (id) => {
         if (!window.confirm("Are you sure you want to remove this event?")) return;
         try {
-            const res = await fetch(`http://localhost:5001/api/events/${id}`, { method: 'DELETE' });
-            if (!res.ok) throw new Error("Failed to delete event");
+            await api.delete(`/events/${id}`);
             fetchEvents();
         } catch (error) {
             console.error(error);
-            alert(error.message);
+            alert(error.response?.data?.error || error.message);
         }
     };
 
@@ -116,12 +113,14 @@ const EventsAndNotices = () => {
                             <Calendar className="text-orange-700 h-5 w-5" />
                             <h2 className="text-xl font-serif font-bold text-stone-800">Upcoming Events</h2>
                         </div>
-                        <button
-                            onClick={() => { setEditingEvent(null); setIsEventModalOpen(true); }}
-                            className="flex items-center gap-1.5 bg-orange-100 hover:bg-orange-200 text-orange-800 px-3 py-1.5 rounded-lg text-sm font-bold transition-colors shadow-sm"
-                        >
-                            <Plus size={16} /> Create Event
-                        </button>
+                        {isAdmin && (
+                            <button
+                                onClick={() => { setEditingEvent(null); setIsEventModalOpen(true); }}
+                                className="flex items-center gap-1.5 bg-orange-100 hover:bg-orange-200 text-orange-800 px-3 py-1.5 rounded-lg text-sm font-bold transition-colors shadow-sm"
+                            >
+                                <Plus size={16} /> Create Event
+                            </button>
+                        )}
                     </div>
 
                     <div className="grid gap-6">
@@ -136,22 +135,24 @@ const EventsAndNotices = () => {
                                     className="bg-white p-6 rounded-2xl shadow-sm border border-orange-100 flex flex-col md:flex-row gap-6 hover:shadow-md transition duration-300 animate-slide-up relative group"
                                     style={{ animationDelay: `${0.1 * (index + 1)}s` }}
                                 >
-                                    <div className="absolute top-4 right-4 z-10 flex gap-1">
-                                        <button
-                                            onClick={(e) => { e.stopPropagation(); setEditingEvent(event); setIsEventModalOpen(true); }}
-                                            className="p-1.5 text-stone-300 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-colors md:opacity-0 group-hover:opacity-100"
-                                            title="Edit Event"
-                                        >
-                                            <Edit2 size={16} />
-                                        </button>
-                                        <button
-                                            onClick={(e) => { e.stopPropagation(); handleDeleteEvent(event.id); }}
-                                            className="p-1.5 text-stone-300 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors md:opacity-0 group-hover:opacity-100"
-                                            title="Delete Event"
-                                        >
-                                            <Trash2 size={16} />
-                                        </button>
-                                    </div>
+                                    {isAdmin && (
+                                        <div className="absolute top-4 right-4 z-10 flex gap-1">
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); setEditingEvent(event); setIsEventModalOpen(true); }}
+                                                className="p-1.5 text-stone-300 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-colors md:opacity-0 group-hover:opacity-100"
+                                                title="Edit Event"
+                                            >
+                                                <Edit2 size={16} />
+                                            </button>
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); handleDeleteEvent(event.id); }}
+                                                className="p-1.5 text-stone-300 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors md:opacity-0 group-hover:opacity-100"
+                                                title="Delete Event"
+                                            >
+                                                <Trash2 size={16} />
+                                            </button>
+                                        </div>
+                                    )}
                                     <div className="bg-orange-100 p-6 rounded-xl flex flex-col items-center justify-center min-w-[140px] text-orange-900 group-hover:bg-orange-200 transition-colors">
                                         <Calendar className="h-8 w-8 mb-2 group-hover:scale-110 transition-transform duration-300" />
                                         <span className="font-bold text-center leading-tight">{event.date}</span>
@@ -194,12 +195,14 @@ const EventsAndNotices = () => {
                             <Megaphone className="text-orange-700 h-5 w-5" />
                             <h2 className="text-xl font-serif font-bold text-stone-800">Notice Board</h2>
                         </div>
-                        <button
-                            onClick={() => { setEditingNotice(null); setIsModalOpen(true); }}
-                            className="flex items-center gap-1.5 bg-orange-700 hover:bg-orange-800 text-white px-3 py-1.5 rounded-lg text-sm font-bold transition-colors shadow-sm"
-                        >
-                            <Plus size={16} /> Add Notice
-                        </button>
+                        {isAdmin && (
+                            <button
+                                onClick={() => { setEditingNotice(null); setIsModalOpen(true); }}
+                                className="flex items-center gap-1.5 bg-orange-700 hover:bg-orange-800 text-white px-3 py-1.5 rounded-lg text-sm font-bold transition-colors shadow-sm"
+                            >
+                                <Plus size={16} /> Add Notice
+                            </button>
+                        )}
                     </div>
 
                     <div className="space-y-4">
@@ -227,20 +230,24 @@ const EventsAndNotices = () => {
                                                 <Calendar className="h-3 w-3" />
                                                 {new Date(notice.date).toLocaleDateString()}
                                             </span>
-                                            <button
-                                                onClick={(e) => { e.stopPropagation(); setEditingNotice(notice); setIsModalOpen(true); }}
-                                                className="p-1.5 text-stone-300 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-colors opacity-0 group-hover/title:opacity-100"
-                                                title="Edit Notice"
-                                            >
-                                                <Edit2 size={14} />
-                                            </button>
-                                            <button
-                                                onClick={(e) => { e.stopPropagation(); handleDelete(notice.id); }}
-                                                className="p-1.5 text-stone-300 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors opacity-0 group-hover/title:opacity-100"
-                                                title="Delete Notice"
-                                            >
-                                                <Trash2 size={14} />
-                                            </button>
+                                            {isAdmin && (
+                                                <>
+                                                    <button
+                                                        onClick={(e) => { e.stopPropagation(); setEditingNotice(notice); setIsModalOpen(true); }}
+                                                        className="p-1.5 text-stone-300 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-colors opacity-0 group-hover/title:opacity-100"
+                                                        title="Edit Notice"
+                                                    >
+                                                        <Edit2 size={14} />
+                                                    </button>
+                                                    <button
+                                                        onClick={(e) => { e.stopPropagation(); handleDelete(notice.id); }}
+                                                        className="p-1.5 text-stone-300 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors opacity-0 group-hover/title:opacity-100"
+                                                        title="Delete Notice"
+                                                    >
+                                                        <Trash2 size={14} />
+                                                    </button>
+                                                </>
+                                            )}
                                             <div className="text-stone-400 group-hover/title:text-orange-600 ml-1">
                                                 {expandedNoticeId === notice.id ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                                             </div>

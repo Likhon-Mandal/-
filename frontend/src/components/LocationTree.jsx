@@ -39,7 +39,7 @@ const levelTitles = {
     'home': 'Home'
 };
 
-const LocationNode = ({ node, isActive, isDimmed, onClick, onMapSelect, onEditSubmit, onDeleteSubmit, levelName, index, className }) => {
+const LocationNode = ({ node, isActive, isDimmed, onClick, onMapSelect, onEditSubmit, onDeleteSubmit, levelName, index, className, isAdmin }) => {
     const nodeRef = useRef(null);
     const hasChildren = node.children && node.children.length > 0;
 
@@ -128,18 +128,20 @@ const LocationNode = ({ node, isActive, isDimmed, onClick, onMapSelect, onEditSu
                         <div className="flex items-center justify-between group">
                             <span className={`text-base font-serif font-bold truncate ${isActive ? 'text-orange-900' : 'text-stone-800'}`}>{node.name}</span>
                             <div className="opacity-0 group-hover:opacity-100 flex p-0.5 ml-1 transition-all space-x-1">
-                                <button
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        setEditValue(node.name);
-                                        setIsEditing(true);
-                                    }}
-                                    className="p-1.5 text-stone-400 hover:text-orange-600 hover:bg-orange-50 rounded"
-                                    title="Rename Location"
-                                >
-                                    <Edit2 size={12} />
-                                </button>
-                                {onDeleteSubmit && (
+                                {isAdmin && (
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setEditValue(node.name);
+                                            setIsEditing(true);
+                                        }}
+                                        className="p-1.5 text-stone-400 hover:text-orange-600 hover:bg-orange-50 rounded"
+                                        title="Rename Location"
+                                    >
+                                        <Edit2 size={12} />
+                                    </button>
+                                )}
+                                {isAdmin && onDeleteSubmit && (
                                     <button
                                         onClick={(e) => {
                                             e.stopPropagation();
@@ -200,7 +202,8 @@ const LocationTree = ({
     onNodeSelect,
     onConfirmSelection,
     onEditSubmit,
-    onDeleteSubmit
+    onDeleteSubmit,
+    isAdmin
 }) => {
 
     // Flatten layers based on activePath
@@ -269,6 +272,7 @@ const LocationTree = ({
                                             }
                                         }}
                                         levelName={levelName}
+                                        isAdmin={isAdmin}
                                     />
                                 ))}
                             </div>

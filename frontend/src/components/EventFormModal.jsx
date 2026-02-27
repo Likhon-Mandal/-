@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, CheckCircle2 } from 'lucide-react';
+import api from '../api/api';
 
 const EventFormModal = ({ isOpen, onClose, onSuccess, initialData }) => {
     const [title, setTitle] = useState('');
@@ -45,25 +46,17 @@ const EventFormModal = ({ isOpen, onClose, onSuccess, initialData }) => {
         };
 
         try {
-            const url = initialData?.id ? `http://localhost:5001/api/events/${initialData.id}` : 'http://localhost:5001/api/events';
-            const method = initialData?.id ? 'PUT' : 'POST';
-
-            const response = await fetch(url, {
-                method,
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-
-            if (!response.ok) {
-                const data = await response.json();
-                throw new Error(data.error || 'Failed to add event');
+            if (initialData?.id) {
+                await api.put(`/events/${initialData.id}`, payload);
+            } else {
+                await api.post('/events', payload);
             }
 
             if (onSuccess) onSuccess();
             onClose();
         } catch (error) {
             console.error(error);
-            alert(error.message);
+            alert(error.response?.data?.error || error.message);
         } finally {
             setLoading(false);
         }

@@ -1,7 +1,9 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const cookieParser = require('cookie-parser');
 const { pool } = require('./config/db');
+const { seedSuperAdmin } = require('./seedSuperAdmin');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -12,9 +14,11 @@ app.use(cors({
   credentials: true
 }));
 app.use(express.json());
+app.use(cookieParser());
 
 // Routes
 app.use('/api/auth', require('./routes/authRoutes'));
+app.use('/api/admin', require('./routes/adminRoutes'));
 app.use('/api/members', require('./routes/memberRoutes'));
 app.use('/api/family', require('./routes/familyRoutes'));
 app.use('/api/committee', require('./routes/committee'));
@@ -42,8 +46,9 @@ app.get('/db-test', async (req, res) => {
   }
 });
 
-app.listen(PORT, () => {
+// Start Server
+app.listen(PORT, async () => {
   console.log(`Server running on port ${PORT}`);
+  // Seed SuperAdmin on every startup
+  await seedSuperAdmin();
 });
-
-// Touch to restart

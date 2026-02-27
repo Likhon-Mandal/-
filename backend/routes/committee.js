@@ -1,17 +1,14 @@
 const express = require('express');
 const router = express.Router();
 const committeeController = require('../controllers/committeeController');
+const { authenticate, requireAdmin } = require('../middleware/authMiddleware');
 
-// GET /api/committee - Get all committees with their members
+// Public: Read
 router.get('/', committeeController.getCommittees);
 
-// POST /api/committee - Create a new committee
-router.post('/', committeeController.createCommittee);
-
-// PUT /api/committee/:id - Update an existing committee
-router.put('/:id', committeeController.updateCommittee);
-
-// DELETE /api/committee/:id - Delete a committee
-router.delete('/:id', committeeController.deleteCommittee);
+// Protected: Write (admin/superadmin only)
+router.post('/', authenticate, requireAdmin, committeeController.createCommittee);
+router.put('/:id', authenticate, requireAdmin, committeeController.updateCommittee);
+router.delete('/:id', authenticate, requireAdmin, committeeController.deleteCommittee);
 
 module.exports = router;

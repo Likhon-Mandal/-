@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { X, Save } from 'lucide-react';
+import api from '../api/api';
 
 const LocationForm = ({ isOpen, onClose, level, parentName, onSuccess }) => {
     const [name, setName] = useState('');
@@ -14,23 +15,13 @@ const LocationForm = ({ isOpen, onClose, level, parentName, onSuccess }) => {
         if (!name.trim()) return;
 
         try {
-            const res = await fetch('http://localhost:5001/api/family/location', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ level, name, parentName })
-            });
-
-            if (res.ok) {
-                setName('');
-                onSuccess();
-                onClose();
-            } else {
-                const data = await res.json();
-                setError(data.error || 'Failed to add location');
-            }
+            await api.post('/family/location', { level, name, parentName });
+            setName('');
+            onSuccess();
+            onClose();
         } catch (err) {
             console.error(err);
-            setError('Network error');
+            setError(err.response?.data?.error || 'Failed to add location');
         }
     };
 
@@ -59,19 +50,19 @@ const LocationForm = ({ isOpen, onClose, level, parentName, onSuccess }) => {
                         <label className="block text-xs font-bold text-stone-500 uppercase mb-1">
                             {level} Name *
                         </label>
-                        <input 
-                            type="text" 
-                            required 
+                        <input
+                            type="text"
+                            required
                             autoFocus
-                            className="w-full p-2 border rounded border-orange-200 focus:border-orange-500 outline-none" 
-                            value={name} 
-                            onChange={e => setName(e.target.value)} 
+                            className="w-full p-2 border rounded border-orange-200 focus:border-orange-500 outline-none"
+                            value={name}
+                            onChange={e => setName(e.target.value)}
                             placeholder={`Enter ${level} name`}
                         />
                     </div>
 
-                    <button 
-                        type="submit" 
+                    <button
+                        type="submit"
                         className="w-full bg-orange-600 text-white font-bold py-2 rounded-lg hover:bg-orange-700 transition flex justify-center gap-2 items-center"
                     >
                         <Save size={18} /> Save {level}

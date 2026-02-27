@@ -1,6 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { X, Plus, Trash2, CheckCircle2 } from 'lucide-react';
 import MemberSelector from './MemberSelector';
+import api from '../api/api';
 
 const CommitteeFormModal = ({ isOpen, onClose, onSuccess, initialData }) => {
     const [name, setName] = useState('');
@@ -131,28 +130,17 @@ const CommitteeFormModal = ({ isOpen, onClose, onSuccess, initialData }) => {
         };
 
         try {
-            const url = initialData
-                ? `http://localhost:5001/api/committee/${initialData.id}`
-                : 'http://localhost:5001/api/committee';
-
-            const method = initialData ? 'PUT' : 'POST';
-
-            const response = await fetch(url, {
-                method,
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-
-            if (!response.ok) {
-                const data = await response.json();
-                throw new Error(data.error || `Failed to ${initialData ? 'update' : 'create'} committee`);
+            if (initialData) {
+                await api.put(`/committee/${initialData.id}`, payload);
+            } else {
+                await api.post('/committee', payload);
             }
 
             if (onSuccess) onSuccess();
             onClose();
         } catch (error) {
             console.error(error);
-            alert(error.message);
+            alert(error.response?.data?.error || error.message);
         } finally {
             setLoading(false);
         }

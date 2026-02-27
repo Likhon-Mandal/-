@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, CheckCircle2 } from 'lucide-react';
+import api from '../api/api';
 
 const NoticeFormModal = ({ isOpen, onClose, onSuccess, initialData }) => {
     const [title, setTitle] = useState('');
@@ -39,25 +40,17 @@ const NoticeFormModal = ({ isOpen, onClose, onSuccess, initialData }) => {
         };
 
         try {
-            const url = initialData?.id ? `http://localhost:5001/api/notices/${initialData.id}` : 'http://localhost:5001/api/notices';
-            const method = initialData?.id ? 'PUT' : 'POST';
-
-            const response = await fetch(url, {
-                method,
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-
-            if (!response.ok) {
-                const data = await response.json();
-                throw new Error(data.error || 'Failed to add notice');
+            if (initialData?.id) {
+                await api.put(`/notices/${initialData.id}`, payload);
+            } else {
+                await api.post('/notices', payload);
             }
 
             if (onSuccess) onSuccess();
             onClose();
         } catch (error) {
             console.error(error);
-            alert(error.message);
+            alert(error.response?.data?.error || error.message);
         } finally {
             setLoading(false);
         }

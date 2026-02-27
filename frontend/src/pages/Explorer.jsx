@@ -8,8 +8,11 @@ import MemberProfileModal from '../components/MemberProfileModal';
 
 import LocationForm from '../components/LocationForm';
 import ConfirmModal from '../components/ConfirmModal';
+import { useAuth } from '../context/AuthContext';
+import api from '../api/api';
 
 const Explorer = () => {
+    const { isAdmin } = useAuth();
     const location = useLocation();
     const navigate = useNavigate();
 
@@ -31,29 +34,19 @@ const Explorer = () => {
 
     const handleEditSubmit = async (level, oldName, newName, parentName) => {
         try {
-            const response = await fetch('http://localhost:5001/api/family/location', {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ level, oldName, newName, parentName })
-            });
-            if (!response.ok) {
-                const err = await response.json();
-                alert(err.error || 'Failed to update location');
-                return false;
-            }
+            await api.put('/family/location', { level, oldName, newName, parentName });
 
             // Refresh view
             if (viewMode === 'grid') {
                 const parent = pathSegments.length > 0 ? pathSegments[pathSegments.length - 1] : null;
                 fetchOptions(currentLevel, parent);
             } else {
-                // Rebuild the hierarchy
                 buildHierarchyData();
             }
             return true;
         } catch (e) {
             console.error('Error updating:', e);
-            alert('Server error updating location');
+            alert(e.response?.data?.error || 'Failed to update location');
             return false;
         }
     };
@@ -65,15 +58,7 @@ const Explorer = () => {
             message: `WARNING: Are you sure you want to permanently delete ${member.full_name}'s record?`,
             onConfirm: async () => {
                 try {
-                    const response = await fetch(`http://localhost:5001/api/members/${member.id}`, {
-                        method: 'DELETE'
-                    });
-
-                    if (!response.ok) {
-                        const err = await response.json();
-                        alert(err.error || 'Failed to delete member');
-                        return;
-                    }
+                    await api.delete(`/members/${member.id}`);
 
                     // Refresh the details view
                     const homeName = pathSegments[4]; // Index shifted
@@ -83,7 +68,7 @@ const Explorer = () => {
                     }
                 } catch (e) {
                     console.error('Error deleting member:', e);
-                    alert('Server error deleting member');
+                    alert(e.response?.data?.error || 'Failed to delete member');
                 }
             }
         });
@@ -97,20 +82,9 @@ const Explorer = () => {
             onConfirm: async () => {
                 try {
                     const parentName = pathSegments.length > 0 ? pathSegments[pathSegments.length - 1] : null;
-                    let url = `http://localhost:5001/api/family/location?level=${level}&name=${encodeURIComponent(name)}`;
-                    if (parentName) {
-                        url += `&parentName=${encodeURIComponent(parentName)}`;
-                    }
-
-                    const response = await fetch(url, {
-                        method: 'DELETE'
+                    await api.delete('/family/location', {
+                        params: { level, name, parentName }
                     });
-
-                    if (!response.ok) {
-                        const err = await response.json();
-                        alert(err.error || 'Failed to delete location');
-                        return;
-                    }
 
                     // Refresh view
                     if (viewMode === 'grid') {
@@ -120,7 +94,7 @@ const Explorer = () => {
                     }
                 } catch (e) {
                     console.error('Error deleting:', e);
-                    alert('Server error deleting location');
+                    alert(e.response?.data?.error || 'Failed to delete location');
                 }
             }
         });
@@ -168,15 +142,10 @@ const Explorer = () => {
     const fetchOptions = async (level, parent) => {
         try {
             setLoading(true);
-            let url = `http://localhost:5001/api/family/hierarchy?level=${level}`;
-            if (parent && level !== 'country') {
-                url += `&parent=${encodeURIComponent(parent)}`;
-            }
-
-            const response = await fetch(url);
-            if (!response.ok) throw new Error('Failed to fetch data');
-            const data = await response.json();
-            setOptions(data);
+            const res = await api.get('/family/hierarchy', {
+                params: { level, parent }
+            });
+            setOptions(res.data);
         } catch (error) {
             console.error('Error fetching options:', error);
             setOptions([]);
@@ -192,8 +161,8 @@ const Explorer = () => {
 
             if (currentLevel === 'country') {
                 // Fetch countries
-                const res = await fetch(`http://localhost:5001/api/family/hierarchy?level=country`);
-                const countries = await res.json();
+                const res = await api.get('/family/hierarchy', { params: { level: 'country' } });
+                const countries = res.data;
                 const rootData = countries.map(c => ({ name: c, level: 'country', children: [] }));
                 setHierarchyData(rootData);
                 setActiveGraphPath([]);
@@ -220,8 +189,8 @@ const Explorer = () => {
 
                 // Now fetch the actual options for the *current* level and add them to the leaf
                 const parentName = pathSegments[pathSegments.length - 1];
-                const res = await fetch(`http://localhost:5001/api/family/hierarchy?level=${currentLevel}&parent=${encodeURIComponent(parentName)}`);
-                const currentOptions = await res.json();
+                const res = await api.get('/family/hierarchy', { params: { level: currentLevel, parent: parentName } });
+                const currentOptions = res.data;
 
                 dataRef.children = currentOptions.map(opt => ({ name: opt, level: currentLevel, children: [] }));
 
@@ -237,11 +206,10 @@ const Explorer = () => {
 
     const fetchHouseholdMembers = async (homeName, village) => {
         try {
-            const url = `http://localhost:5001/api/family/household?home_name=${encodeURIComponent(homeName)}&village=${encodeURIComponent(village)}`;
-            const response = await fetch(url);
-            if (!response.ok) throw new Error('Failed to fetch members');
-            const data = await response.json();
-            setMembers(data);
+            const res = await api.get('/family/household', {
+                params: { home_name: homeName, village }
+            });
+            setMembers(res.data);
         } catch (error) {
             console.error('Error fetching members:', error);
             setMembers([]);
@@ -275,8 +243,8 @@ const Explorer = () => {
         if (nextLevel && nextLevel !== 'details') {
             // Fetch children
             try {
-                const res = await fetch(`http://localhost:5001/api/family/hierarchy?level=${nextLevel}&parent=${encodeURIComponent(node.name)}`);
-                const childrenNames = await res.json();
+                const res = await api.get('/family/hierarchy', { params: { level: nextLevel, parent: node.name } });
+                const childrenNames = res.data;
                 node.children = childrenNames.map(c => ({ name: c, level: nextLevel, children: [] }));
 
                 // Trigger re-render by updating state
@@ -394,21 +362,23 @@ const Explorer = () => {
                         </div>
                     )}
 
-                    {/* Recycle Bin Button */}
-                    <button
-                        onClick={() => navigate('/recycle-bin')}
-                        className="flex items-center gap-2 bg-stone-100 text-stone-700 font-medium px-4 py-2 rounded-lg hover:bg-red-50 hover:text-red-700 hover:border-red-200 transition shadow-sm border border-stone-200"
-                    >
-                        <Trash2 size={18} /> Recycle Bin
-                    </button>
+                    {isAdmin && (
+                        <button
+                            onClick={() => navigate('/recycle-bin')}
+                            className="flex items-center gap-2 bg-stone-100 text-stone-700 font-medium px-4 py-2 rounded-lg hover:bg-red-50 hover:text-red-700 hover:border-red-200 transition shadow-sm border border-stone-200"
+                        >
+                            <Trash2 size={18} /> Recycle Bin
+                        </button>
+                    )}
 
-                    {/* Dynamic Add Button */}
-                    <button
-                        onClick={handleAddClick}
-                        className="flex items-center gap-2 bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 transition shadow-sm"
-                    >
-                        <Plus size={20} /> Add {getNextLevelName()}
-                    </button>
+                    {isAdmin && (
+                        <button
+                            onClick={handleAddClick}
+                            className="flex items-center gap-2 bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 transition shadow-sm"
+                        >
+                            <Plus size={20} /> Add {getNextLevelName()}
+                        </button>
+                    )}
                 </div>
             </div>
 
@@ -473,29 +443,31 @@ const Explorer = () => {
                                         ) : (
                                             <>
                                                 {/* Edit & Delete Buttons */}
-                                                <div className="absolute top-2 right-2 flex opacity-0 group-hover:opacity-100 transition-opacity space-x-1">
-                                                    <button
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            setEditingItem(item);
-                                                            setEditValue(item);
-                                                        }}
-                                                        className="p-1.5 text-stone-400 hover:text-orange-600 hover:bg-orange-50 rounded-md"
-                                                        title="Rename"
-                                                    >
-                                                        <Edit2 size={16} />
-                                                    </button>
-                                                    <button
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            handleDeleteLocation(currentLevel, item);
-                                                        }}
-                                                        className="p-1.5 text-stone-400 hover:text-red-600 hover:bg-red-50 rounded-md"
-                                                        title="Delete"
-                                                    >
-                                                        <Trash2 size={16} />
-                                                    </button>
-                                                </div>
+                                                {isAdmin && (
+                                                    <div className="absolute top-2 right-2 flex opacity-0 group-hover:opacity-100 transition-opacity space-x-1">
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                setEditingItem(item);
+                                                                setEditValue(item);
+                                                            }}
+                                                            className="p-1.5 text-stone-400 hover:text-orange-600 hover:bg-orange-50 rounded-md"
+                                                            title="Rename"
+                                                        >
+                                                            <Edit2 size={16} />
+                                                        </button>
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                handleDeleteLocation(currentLevel, item);
+                                                            }}
+                                                            className="p-1.5 text-stone-400 hover:text-red-600 hover:bg-red-50 rounded-md"
+                                                            title="Delete"
+                                                        >
+                                                            <Trash2 size={16} />
+                                                        </button>
+                                                    </div>
+                                                )}
 
                                                 <div onClick={() => handleSelect(item)} className="cursor-pointer flex flex-col items-center w-full mt-4">
                                                     {currentLevel === 'home' ? (
@@ -533,6 +505,8 @@ const Explorer = () => {
                                 onNodeSelect={handleGraphNodeSelect}
                                 onConfirmSelection={handleGraphConfirmSelection}
                                 onEditSubmit={handleEditSubmit}
+                                onDeleteSubmit={handleDeleteLocation}
+                                isAdmin={isAdmin}
                             />
                         </div>
                     )
@@ -572,6 +546,7 @@ const Explorer = () => {
                                     });
                                     setIsFormOpen(true);
                                 }}
+                                isAdmin={isAdmin}
                             />
                         </div>
                     </div>

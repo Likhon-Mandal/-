@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Save, X } from 'lucide-react';
+import api from '../api/api';
 
 /* 
   Reusable Member Form Component
@@ -53,8 +54,8 @@ const MemberForm = ({ isOpen, onClose, initialData = {}, onSuccess }) => {
     const fetchMembers = async () => {
         try {
             setLoading(true);
-            const res = await fetch('http://localhost:5001/api/members');
-            const data = await res.json();
+            const res = await api.get('/members');
+            const data = res.data;
             setMembers(data);
             setPossibleFathers(data);
             setPossibleMothers(data);
@@ -69,35 +70,25 @@ const MemberForm = ({ isOpen, onClose, initialData = {}, onSuccess }) => {
         const file = e.target.files[0];
         if (!file) return;
 
-        const formData = new FormData();
-        formData.append('image', file);
+        const uploadData = new FormData();
+        uploadData.append('image', file);
 
         try {
-            const res = await fetch('http://localhost:5001/api/upload', {
-                method: 'POST',
-                body: formData
+            const res = await api.post('/upload', uploadData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
             });
-            const data = await res.json();
-            if (res.ok) {
-                setFormData(prev => ({ ...prev, profile_image_url: data.filePath }));
-            } else {
-                alert('Upload failed: ' + data.error);
+            if (res.data.filePath) {
+                setFormData(prev => ({ ...prev, profile_image_url: res.data.filePath }));
             }
         } catch (err) {
             console.error(err);
-            alert('Error uploading image');
+            alert('Error uploading image: ' + (err.response?.data?.error || err.message));
         }
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         const editingId = initialData.id;
-        const url = editingId
-            ? `http://localhost:5001/api/members/${editingId}`
-            : 'http://localhost:5001/api/members';
-
-        const method = editingId ? 'PUT' : 'POST';
-
         const payload = { ...formData };
 
         // Remove null bytes from any string to prevent PostgreSQL UTF8 0x00 errors
@@ -109,7 +100,6 @@ const MemberForm = ({ isOpen, onClose, initialData = {}, onSuccess }) => {
 
         if (formData.isRoot) {
             payload.father_id = null;
-            // payload.level is now manually set by user, so we don't force it to 1
         }
         // Handle optional fields
         if (!payload.mother_id) payload.mother_id = null;
@@ -119,21 +109,16 @@ const MemberForm = ({ isOpen, onClose, initialData = {}, onSuccess }) => {
         delete payload.isRoot;
 
         try {
-            const res = await fetch(url, {
-                method,
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-            if (res.ok) {
-                onSuccess(); // Callback to refresh parent data
-                onClose();
+            if (editingId) {
+                await api.put(`/members/${editingId}`, payload);
             } else {
-                const err = await res.json();
-                alert('Error saving data: ' + (err.error || 'Unknown error'));
+                await api.post('/members', payload);
             }
+            onSuccess();
+            onClose();
         } catch (err) {
             console.error(err);
-            alert('Server error occurred.');
+            alert('Error saving data: ' + (err.response?.data?.error || err.message));
         }
     };
 

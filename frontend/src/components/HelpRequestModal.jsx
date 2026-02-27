@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, CheckCircle2 } from 'lucide-react';
 import MemberSelector from './MemberSelector';
+import api from '../api/api';
 
 const tags = ['Research', 'Medical', 'Financial', 'Advice', 'Other'];
 const types = ['alert', 'info'];
@@ -52,25 +53,17 @@ const HelpRequestModal = ({ isOpen, onClose, onSuccess, initialData }) => {
         };
 
         try {
-            const url = initialData?.id ? `http://localhost:5001/api/help/${initialData.id}` : 'http://localhost:5001/api/help';
-            const method = initialData?.id ? 'PUT' : 'POST';
-
-            const response = await fetch(url, {
-                method,
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error || 'Failed to submit help request');
+            if (initialData?.id) {
+                await api.put(`/help/${initialData.id}`, payload);
+            } else {
+                await api.post('/help', payload);
             }
 
             if (onSuccess) onSuccess();
             onClose();
         } catch (error) {
             console.error(error);
-            alert(error.message);
+            alert(error.response?.data?.error || error.message);
         } finally {
             setLoading(false);
         }

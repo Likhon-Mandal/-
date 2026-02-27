@@ -1,12 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import { Plus, Edit, Trash2, Search, User, X } from 'lucide-react';
 import MemberForm from '../components/MemberForm';
+import api from '../api/api';
 
 const Admin = () => {
     const [members, setMembers] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
-    
+
     // MemberForm State
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [initialFormData, setInitialFormData] = useState({});
@@ -17,9 +16,8 @@ const Admin = () => {
 
     const fetchMembers = async () => {
         try {
-            const res = await fetch('http://localhost:5001/api/members');
-            const data = await res.json();
-            setMembers(data);
+            const res = await api.get('/members');
+            setMembers(res.data);
             setLoading(false);
         } catch (err) {
             console.error(err);
@@ -39,10 +37,11 @@ const Admin = () => {
     const handleDelete = async (id) => {
         if (!window.confirm('Are you sure? This might break the family tree!')) return;
         try {
-            await fetch(`http://localhost:5001/api/members/${id}`, { method: 'DELETE' });
+            await api.delete(`/members/${id}`);
             fetchMembers();
         } catch (err) {
             console.error(err);
+            alert(err.response?.data?.error || err.message);
         }
     };
 
@@ -50,16 +49,16 @@ const Admin = () => {
         fetchMembers();
     };
 
-    const filteredMembers = members.filter(m => 
+    const filteredMembers = members.filter(m =>
         m.full_name.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
     return (
-         <div className="min-h-screen bg-orange-50 p-8 font-sans">
+        <div className="min-h-screen bg-orange-50 p-8 font-sans">
             <div className="max-w-7xl mx-auto">
                 <div className="flex justify-between items-center mb-8">
                     <h1 className="text-3xl font-serif text-orange-900 font-bold">Admin Dashboard</h1>
-                    <button 
+                    <button
                         onClick={handleCreate}
                         className="flex items-center gap-2 bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 transition"
                     >
@@ -69,9 +68,9 @@ const Admin = () => {
 
                 <div className="bg-white p-4 rounded-xl shadow-sm border border-orange-100 mb-6 flex items-center gap-3">
                     <Search className="text-stone-400" />
-                    <input 
-                        type="text" 
-                        placeholder="Search members..." 
+                    <input
+                        type="text"
+                        placeholder="Search members..."
                         className="flex-1 outline-none text-stone-700"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
@@ -115,13 +114,13 @@ const Admin = () => {
                 </div>
             </div>
 
-            <MemberForm 
-                isOpen={isFormOpen} 
-                onClose={() => setIsFormOpen(false)} 
+            <MemberForm
+                isOpen={isFormOpen}
+                onClose={() => setIsFormOpen(false)}
                 initialData={initialFormData}
                 onSuccess={handleFormSuccess}
             />
-         </div>
+        </div>
     );
 };
 

@@ -1,17 +1,14 @@
 const express = require('express');
 const router = express.Router();
 const eminentController = require('../controllers/eminentController');
+const { authenticate, requireAdmin } = require('../middleware/authMiddleware');
 
-// GET /api/eminent - Get all eminent figures grouped by category
+// Public: Read
 router.get('/', eminentController.getEminentFigures);
 
-// POST /api/eminent - Add a new eminent figure
-router.post('/', eminentController.addEminentFigure);
-
-// PUT /api/eminent/:id - Update an eminent figure's details
-router.put('/:id', eminentController.updateEminentFigure);
-
-// DELETE /api/eminent/:id - Remove an eminent figure
-router.delete('/:id', eminentController.deleteEminentFigure);
+// Protected: Write (admin/superadmin only)
+router.post('/', authenticate, requireAdmin, eminentController.addEminentFigure);
+router.put('/:id', authenticate, requireAdmin, eminentController.updateEminentFigure);
+router.delete('/:id', authenticate, requireAdmin, eminentController.deleteEminentFigure);
 
 module.exports = router;

@@ -1,6 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Search, Map, X, Check } from 'lucide-react';
 import LocationSelectionModal from './LocationSelectionModal';
+import api from '../api/api';
 
 const MemberSelector = ({ label, onSelect, selectedMember }) => {
     const [searchQuery, setSearchQuery] = useState('');
@@ -22,10 +21,8 @@ const MemberSelector = ({ label, onSelect, selectedMember }) => {
             try {
                 setIsSearching(true);
                 // Search up to 5 results to keep dropdown clean
-                const response = await fetch(`http://localhost:5001/api/members?name=${encodeURIComponent(searchQuery)}`);
-                if (!response.ok) throw new Error('Network response was not ok');
-                const data = await response.json();
-                setSearchResults(data.slice(0, 5)); // Limit to 5 for the dropdown
+                const response = await api.get('/members', { params: { name: searchQuery } });
+                setSearchResults(response.data.slice(0, 5)); // Limit to 5 for the dropdown
                 setIsDropdownOpen(true);
             } catch (error) {
                 console.error("Failed to fetch search results:", error);

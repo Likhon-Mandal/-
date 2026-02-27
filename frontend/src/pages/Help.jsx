@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { HelpCircle, Search, MessageCircle, PlusCircle, Trash2, Edit2 } from 'lucide-react';
 import HelpRequestModal from '../components/HelpRequestModal';
+import { useAuth } from '../context/AuthContext';
+import api from '../api/api';
 
 const Help = () => {
+    const { isAdmin } = useAuth();
     const [helpRequests, setHelpRequests] = useState([]);
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -12,11 +15,8 @@ const Help = () => {
     const fetchHelpData = async () => {
         try {
             setLoading(true);
-            const res = await fetch('http://localhost:5001/api/help');
-            if (res.ok) {
-                const data = await res.json();
-                setHelpRequests(data);
-            }
+            const res = await api.get('/help');
+            setHelpRequests(res.data);
         } catch (error) {
             console.error(error);
         } finally {
@@ -31,10 +31,11 @@ const Help = () => {
     const handleDelete = async (id) => {
         if (!window.confirm("Are you sure you want to delete this specific request?")) return;
         try {
-            const res = await fetch(`http://localhost:5001/api/help/${id}`, { method: 'DELETE' });
-            if (res.ok) fetchHelpData();
+            await api.delete(`/help/${id}`);
+            fetchHelpData();
         } catch (error) {
             console.error(error);
+            alert(error.response?.data?.error || error.message);
         }
     };
 
@@ -87,22 +88,24 @@ const Help = () => {
                             className="bg-white p-6 rounded-lg shadow-sm border border-orange-100 hover:border-accent hover:shadow-md transition duration-300 animate-slide-up relative group"
                             style={{ animationDelay: `${0.1 * (index + 1)}s` }}
                         >
-                            <div className="absolute top-4 right-4 flex gap-1 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <button
-                                    onClick={() => { setEditingRequest(post); setIsModalOpen(true); }}
-                                    className="p-1.5 text-stone-300 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"
-                                    title="Edit Request"
-                                >
-                                    <Edit2 size={16} />
-                                </button>
-                                <button
-                                    onClick={() => handleDelete(post.id)}
-                                    className="p-1.5 text-stone-300 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                                    title="Delete Request"
-                                >
-                                    <Trash2 size={16} />
-                                </button>
-                            </div>
+                            {isAdmin && (
+                                <div className="absolute top-4 right-4 flex gap-1 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <button
+                                        onClick={() => { setEditingRequest(post); setIsModalOpen(true); }}
+                                        className="p-1.5 text-stone-300 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"
+                                        title="Edit Request"
+                                    >
+                                        <Edit2 size={16} />
+                                    </button>
+                                    <button
+                                        onClick={() => handleDelete(post.id)}
+                                        className="p-1.5 text-stone-300 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                        title="Delete Request"
+                                    >
+                                        <Trash2 size={16} />
+                                    </button>
+                                </div>
+                            )}
 
                             <div className="flex justify-between items-start mb-2 pr-16">
                                 <span className={`px-2 py-1 rounded text-xs font-bold uppercase transition-colors cursor-default ${post.type === 'alert' ? 'bg-red-100 text-red-800 hover:bg-red-200' : 'bg-orange-100 text-orange-800 hover:bg-orange-200'}`}>{post.tag}</span>

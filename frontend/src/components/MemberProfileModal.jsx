@@ -1,7 +1,9 @@
 import React from 'react';
 import { X, MapPin, Briefcase, Calendar, Droplet, User, Edit, Trash2 } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 const MemberProfileModal = ({ member, isOpen, onClose, onEdit, onDelete }) => {
+    const { isAdmin } = useAuth();
     if (!isOpen || !member) return null;
 
     return (
@@ -40,28 +42,32 @@ const MemberProfileModal = ({ member, isOpen, onClose, onEdit, onDelete }) => {
 
                         {/* Actions Suite */}
                         <div className="flex flex-col gap-2 items-end mb-2">
-                            {/* Edit Button */}
-                            <button
-                                onClick={() => {
-                                    onEdit(member);
-                                    onClose();
-                                }}
-                                className="flex items-center gap-2 px-4 py-2 bg-stone-800 text-white text-sm font-medium rounded-full hover:bg-stone-700 transition-colors shadow-sm"
-                            >
-                                <Edit size={14} /> Edit
-                            </button>
+                            {isAdmin && (
+                                <>
+                                    {/* Edit Button */}
+                                    <button
+                                        onClick={() => {
+                                            onEdit(member);
+                                            onClose();
+                                        }}
+                                        className="flex items-center gap-2 px-4 py-2 bg-stone-800 text-white text-sm font-medium rounded-full hover:bg-stone-700 transition-colors shadow-sm"
+                                    >
+                                        <Edit size={14} /> Edit
+                                    </button>
 
-                            {/* Delete Button */}
-                            {onDelete && (
-                                <button
-                                    onClick={() => {
-                                        onDelete(member);
-                                        onClose();
-                                    }}
-                                    className="flex items-center gap-2 px-4 py-2 border border-red-200 text-red-600 bg-white text-sm font-medium rounded-full hover:bg-red-50 transition-colors shadow-sm"
-                                >
-                                    <Trash2 size={14} /> Delete
-                                </button>
+                                    {/* Delete Button */}
+                                    {onDelete && (
+                                        <button
+                                            onClick={() => {
+                                                onDelete(member);
+                                                onClose();
+                                            }}
+                                            className="flex items-center gap-2 px-4 py-2 border border-red-200 text-red-600 bg-white text-sm font-medium rounded-full hover:bg-red-50 transition-colors shadow-sm"
+                                        >
+                                            <Trash2 size={14} /> Delete
+                                        </button>
+                                    )}
+                                </>
                             )}
                         </div>
                     </div>

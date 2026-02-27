@@ -139,7 +139,7 @@ const PersonDetailsModal = ({ person, onClose, onEditNode, onDeleteNode }) => {
 };
 
 /* TreeNode Component */
-const TreeNode = ({ node, isActive, isDimmed, onClick, onAddChild, onViewDetails, onEditNode, onDeleteNode, level, index, className }) => {
+const TreeNode = ({ node, isActive, isDimmed, onClick, onAddChild, onViewDetails, onEditNode, onDeleteNode, level, index, className, isAdmin }) => {
     const nodeRef = useRef(null);
     const hasChildren = node.children && node.children.length > 0;
     const childrenCount = node.children ? node.children.length : 0;
@@ -194,7 +194,7 @@ const TreeNode = ({ node, isActive, isDimmed, onClick, onAddChild, onViewDetails
 
                 {/* Edit & Delete Actions (Always Visible on Top Right) */}
                 <div className="absolute top-2 right-2 flex gap-1 z-50">
-                    {onDeleteNode && (
+                    {isAdmin && onDeleteNode && (
                         <button
                             onClick={(e) => {
                                 e.stopPropagation();
@@ -206,7 +206,7 @@ const TreeNode = ({ node, isActive, isDimmed, onClick, onAddChild, onViewDetails
                             <Trash2 size={14} />
                         </button>
                     )}
-                    {onEditNode && (
+                    {isAdmin && onEditNode && (
                         <button
                             onClick={(e) => {
                                 e.stopPropagation();
@@ -268,21 +268,23 @@ const TreeNode = ({ node, isActive, isDimmed, onClick, onAddChild, onViewDetails
                 )}
 
                 {/* Centered Add Button */}
-                <button
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        if (onAddChild) onAddChild(node);
-                    }}
-                    className={`
+                {isAdmin && (
+                    <button
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            if (onAddChild) onAddChild(node);
+                        }}
+                        className={`
                         absolute -bottom-4 left-1/2 -translate-x-1/2
                         w-8 h-8 rounded-full flex items-center justify-center
                         border-2 border-white shadow-md transition-transform duration-300 hover:scale-110 active:scale-95
                         ${isActive ? 'bg-orange-600 text-white' : 'bg-stone-50 text-stone-400 hover:bg-orange-100 hover:text-orange-600'}
                     `}
-                    title="Add Child"
-                >
-                    <Plus size={16} strokeWidth={3} />
-                </button>
+                        title="Add Child"
+                    >
+                        <Plus size={16} strokeWidth={3} />
+                    </button>
+                )}
             </div>
 
             {/* Connector Line DOWN - Extends down to touch the horizontal bus of next layer */}
@@ -294,7 +296,7 @@ const TreeNode = ({ node, isActive, isDimmed, onClick, onAddChild, onViewDetails
 };
 
 /* Main Component */
-const FamilyTree = ({ members, onAddChild, onAddRoot, onEditNode, onDeleteNode }) => {
+const FamilyTree = ({ members, onAddChild, onAddRoot, onEditNode, onDeleteNode, isAdmin }) => {
     const [activePathIds, setActivePathIds] = useState([]);
     const [selectedPerson, setSelectedPerson] = useState(null);
 
@@ -402,14 +404,16 @@ const FamilyTree = ({ members, onAddChild, onAddRoot, onEditNode, onDeleteNode }
                 <h1 className="text-4xl md:text-5xl font-serif font-bold text-stone-800 mb-2">Ancestral Lineage</h1>
                 <p className="text-stone-500 text-sm max-w-md mx-auto mb-8 tracking-tight">Explore the living history across generations.</p>
 
-                <button
-                    onClick={() => onAddRoot && onAddRoot()}
-                    className="group relative inline-flex items-center gap-2 px-8 py-3 bg-orange-800 hover:bg-orange-700 text-white font-bold rounded-full shadow-lg transition-all active:scale-95 text-sm uppercase tracking-widest overflow-hidden"
-                >
-                    <div className="absolute inset-0 bg-gradient-to-r from-orange-400/20 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700"></div>
-                    <Plus size={18} strokeWidth={3} className="relative z-10" />
-                    <span className="relative z-10">Add Root Member</span>
-                </button>
+                {isAdmin && (
+                    <button
+                        onClick={() => onAddRoot && onAddRoot()}
+                        className="group relative inline-flex items-center gap-2 px-8 py-3 bg-orange-800 hover:bg-orange-700 text-white font-bold rounded-full shadow-lg transition-all active:scale-95 text-sm uppercase tracking-widest overflow-hidden"
+                    >
+                        <div className="absolute inset-0 bg-gradient-to-r from-orange-400/20 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700"></div>
+                        <Plus size={18} strokeWidth={3} className="relative z-10" />
+                        <span className="relative z-10">Add Root Member</span>
+                    </button>
+                )}
             </div>
 
             {/* Tree Content Area */}
@@ -446,6 +450,7 @@ const FamilyTree = ({ members, onAddChild, onAddRoot, onEditNode, onDeleteNode }
                                                 onEditNode={onEditNode}
                                                 onDeleteNode={onDeleteNode}
                                                 level={node.level || (layerIndex + 1)}
+                                                isAdmin={isAdmin}
                                             />
                                         ))}
                                     </div>

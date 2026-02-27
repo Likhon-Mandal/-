@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Trash2, AlertCircle, RefreshCw, ArchiveRestore } from 'lucide-react';
 import ConfirmModal from '../components/ConfirmModal';
+import api from '../api/api';
 
 const RecycleBin = () => {
     const [deletedData, setDeletedData] = useState({
@@ -19,12 +20,10 @@ const RecycleBin = () => {
     const fetchRecycleBin = async () => {
         try {
             setLoading(true);
-            const response = await fetch('http://localhost:5001/api/system/recycle-bin');
-            if (!response.ok) throw new Error('Failed to fetch recycle bin');
-            const data = await response.json();
-            setDeletedData(data);
+            const res = await api.get('/system/recycle-bin');
+            setDeletedData(res.data);
         } catch (err) {
-            setError(err.message);
+            setError(err.response?.data?.error || err.message);
         } finally {
             setLoading(false);
         }
@@ -40,20 +39,10 @@ const RecycleBin = () => {
 
         try {
             setConfirmModal({ ...confirmModal, isOpen: false });
-            // Use ID for restoration
-            const response = await fetch(`http://localhost:5001/api/system/restore/${table}/${item.id}`, {
-                method: 'PUT'
-            });
-
-            if (!response.ok) {
-                const errData = await response.json();
-                throw new Error(errData.error || 'Failed to restore');
-            }
-
-            // Refresh the bin
+            await api.put(`/system/restore/${table}/${item.id}`);
             fetchRecycleBin();
         } catch (err) {
-            alert('Error restoring: ' + err.message);
+            alert('Error restoring: ' + (err.response?.data?.error || err.message));
         }
     };
 

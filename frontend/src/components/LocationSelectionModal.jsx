@@ -1,6 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { createPortal } from 'react-dom';
 import { ChevronRight, Map, Home, X } from 'lucide-react';
+import api from '../api/api';
 
 const LocationSelectionModal = ({ isOpen, onClose, onSelectMember }) => {
     const [options, setOptions] = useState([]);
@@ -42,15 +41,13 @@ const LocationSelectionModal = ({ isOpen, onClose, onSelectMember }) => {
     const fetchOptions = async (level, parent) => {
         try {
             setLoading(true);
-            let url = `http://localhost:5001/api/family/hierarchy?level=${level}`;
+            const params = { level };
             if (parent && level !== 'country') {
-                url += `&parent=${encodeURIComponent(parent)}`;
+                params.parent = parent;
             }
 
-            const response = await fetch(url);
-            if (!response.ok) throw new Error('Failed to fetch data');
-            const data = await response.json();
-            setOptions(data);
+            const response = await api.get('/family/hierarchy', { params });
+            setOptions(response.data);
         } catch (error) {
             console.error('Error fetching options:', error);
             setOptions([]);
@@ -62,11 +59,13 @@ const LocationSelectionModal = ({ isOpen, onClose, onSelectMember }) => {
     const fetchHouseholdMembers = async (homeName, village) => {
         try {
             setLoading(true);
-            const url = `http://localhost:5001/api/family/household?home_name=${encodeURIComponent(homeName)}&village=${encodeURIComponent(village)}`;
-            const response = await fetch(url);
-            if (!response.ok) throw new Error('Failed to fetch members');
-            const data = await response.json();
-            setMembers(data);
+            const response = await api.get('/family/household', {
+                params: {
+                    home_name: homeName,
+                    village
+                }
+            });
+            setMembers(response.data);
         } catch (error) {
             console.error('Error fetching members:', error);
             setMembers([]);
